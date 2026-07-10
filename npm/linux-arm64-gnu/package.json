@@ -1,6 +1,6 @@
 {
   "name": "@codexops/linux-arm64-gnu",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Prebuilt codex-ops Rust binary for Linux arm64 glibc.",
   "homepage": "https://github.com/ChenLuoi/codex-ops#readme",
   "bugs": {
