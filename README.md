@@ -469,9 +469,9 @@ current snapshot source is OpenAI Help Center Codex rate card, checked
 
 | Model | Input / 1M | Cached input / 1M | Output / 1M | Note |
 | --- | ---: | ---: | ---: | --- |
-| GPT-5.6 Sol | 250 credits | 25 credits | 1,500 credits |  |
-| GPT-5.6 Terra | 125 credits | 12.50 credits | 125 credits |  |
-| GPT-5.6 Luna | 50 credits | 5 credits | 300 credits |  |
+| GPT-5.6 Sol | 125 credits | 12.50 credits | 750 credits |  |
+| GPT-5.6 Terra | 62.50 credits | 6.250 credits | 375 credits |  |
+| GPT-5.6 Luna | 25 credits | 2.50 credits | 150 credits |  |
 | GPT-5.5 | 125 credits | 12.50 credits | 750 credits | fast attribution multiplier 2.5x |
 | GPT-5.4 | 62.50 credits | 6.250 credits | 375 credits | fast attribution multiplier 2.0x |
 | GPT-5.4-mini | 18.75 credits | 1.875 credits | 113 credits |  |

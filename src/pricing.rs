@@ -396,9 +396,9 @@ mod tests {
     #[test]
     fn loads_gpt_5_6_pricing_from_rate_card() {
         let expected = [
-            ("gpt-5.6-sol", "GPT-5.6 Sol", 250.0, 25.0, 1500.0),
-            ("gpt-5.6-terra", "GPT-5.6 Terra", 125.0, 12.5, 125.0),
-            ("gpt-5.6-luna", "GPT-5.6 Luna", 50.0, 5.0, 300.0),
+            ("gpt-5.6-sol", "GPT-5.6 Sol", 125.0, 12.5, 750.0),
+            ("gpt-5.6-terra", "GPT-5.6 Terra", 62.5, 6.25, 375.0),
+            ("gpt-5.6-luna", "GPT-5.6 Luna", 25.0, 2.5, 150.0),
         ];
 
         for (key, label, input, cached_input, output) in expected {
