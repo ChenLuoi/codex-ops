@@ -645,7 +645,7 @@ mod tests {
         assert_eq!(check.status, "ok");
         assert_eq!(
             check.message,
-            "8 priced model(s), 0 known unpriced model(s)"
+            "11 priced model(s), 0 known unpriced model(s)"
         );
         assert!(check
             .details

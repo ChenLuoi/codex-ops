@@ -394,6 +394,24 @@ mod tests {
     }
 
     #[test]
+    fn loads_gpt_5_6_pricing_from_rate_card() {
+        let expected = [
+            ("gpt-5.6-sol", "GPT-5.6 Sol", 250.0, 25.0, 1500.0),
+            ("gpt-5.6-terra", "GPT-5.6 Terra", 125.0, 12.5, 125.0),
+            ("gpt-5.6-luna", "GPT-5.6 Luna", 50.0, 5.0, 300.0),
+        ];
+
+        for (key, label, input, cached_input, output) in expected {
+            let pricing = get_model_pricing(key).expect("GPT-5.6 pricing");
+            assert_eq!(pricing.label, label);
+            assert_eq!(pricing.input_credits_per_million, input);
+            assert_eq!(pricing.cached_input_credits_per_million, cached_input);
+            assert_eq!(pricing.output_credits_per_million, output);
+            assert_eq!(pricing.fast_credit_multiplier, 1.0);
+        }
+    }
+
+    #[test]
     fn applies_fast_credit_multiplier_from_rate_card() {
         let usage = TokenUsage {
             input_tokens: 1000,
@@ -478,10 +496,10 @@ mod tests {
             CODEX_RATE_CARD_SOURCE.name,
             "OpenAI Help Center Codex rate card"
         );
-        assert_eq!(CODEX_RATE_CARD_SOURCE.checked_at, "2026-05-13");
+        assert_eq!(CODEX_RATE_CARD_SOURCE.checked_at, "2026-07-10");
         assert_eq!(CODEX_RATE_CARD_SOURCE.credit_to_usd, "25 credits = $1");
         assert!((CODEX_RATE_CARD_SOURCE.credits_per_usd - 25.0).abs() < f64::EPSILON);
-        assert_eq!(list_model_pricing().len(), 8);
+        assert_eq!(list_model_pricing().len(), 11);
         assert!(list_known_unpriced_models().is_empty());
     }
 

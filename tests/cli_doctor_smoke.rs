@@ -88,7 +88,7 @@ fn doctor_json_reports_core_checks_and_pricing_source() {
         "pricing source detail missing: {details:?}"
     );
     assert!(
-        details.iter().any(|detail| detail == "Checked: 2026-05-13"),
+        details.iter().any(|detail| detail == "Checked: 2026-07-10"),
         "pricing checked_at detail missing: {details:?}"
     );
     assert!(
