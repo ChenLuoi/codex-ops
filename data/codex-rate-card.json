@@ -1,10 +1,31 @@
 {
   "source": {
     "name": "OpenAI Help Center Codex rate card",
-    "checked_at": "2026-05-13",
+    "checked_at": "2026-07-10",
     "credit_to_usd": "25 credits = $1"
   },
   "models": [
+    {
+      "key": "gpt-5.6-sol",
+      "label": "GPT-5.6 Sol",
+      "input_credits_per_million": 250.0,
+      "cached_input_credits_per_million": 25.0,
+      "output_credits_per_million": 1500.0
+    },
+    {
+      "key": "gpt-5.6-terra",
+      "label": "GPT-5.6 Terra",
+      "input_credits_per_million": 125.0,
+      "cached_input_credits_per_million": 12.5,
+      "output_credits_per_million": 125.0
+    },
+    {
+      "key": "gpt-5.6-luna",
+      "label": "GPT-5.6 Luna",
+      "input_credits_per_million": 50.0,
+      "cached_input_credits_per_million": 5.0,
+      "output_credits_per_million": 300.0
+    },
     {
       "key": "gpt-5.5",
       "label": "GPT-5.5",
