@@ -38,7 +38,6 @@ pub fn read_rate_limit_samples_report(
         SessionScanOptions {
             sessions_dir: &options.sessions_dir,
             range,
-            scan_all_files: options.scan_all_files,
         },
         read_last_rate_limit_timestamp,
     )?;

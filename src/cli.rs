@@ -340,7 +340,11 @@ struct StatOptionArgs {
     top: Option<String>,
     #[arg(short = 'd', long, help = "Show full event-level rows")]
     detail: bool,
-    #[arg(short = 'F', long, help = "Scan all session files")]
+    #[arg(
+        short = 'F',
+        long,
+        help = "Compatibility option; default scanning already checks historical session files"
+    )]
     full_scan: bool,
     #[arg(short = 'a', long, help = "Include all session usage")]
     all: bool,
@@ -478,7 +482,11 @@ struct FastCandidatesArgs {
         help = "Recent duration such as 12h, 7d, 2w, 1mo"
     )]
     last: Option<String>,
-    #[arg(short = 'F', long, help = "Scan all session files")]
+    #[arg(
+        short = 'F',
+        long,
+        help = "Compatibility option; default scanning already checks historical session files"
+    )]
     full_scan: bool,
     #[arg(
         short = 'A',

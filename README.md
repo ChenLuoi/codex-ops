@@ -229,15 +229,10 @@ codex-ops stat [view] [session]
 
 `stat` reads Codex session JSONL files from `~/.codex/sessions` by default.
 Use `--codex-home` or `--sessions-dir` to point it at another Codex data
-directory. The default scanner reads rollout files in the requested range and
-checks older rollout files in a bounded lookback window by their last
-`token_count` timestamp before deciding whether to read them. The lookback is
-`min(max((end - start) / 2, 7 days), 30 days)`.
-Use `-F, --full-scan` when you need exact local `token_count` results across
-long sessions that may have started before the requested range. Full scan checks
-all rollout files before the requested range by last `token_count` timestamp.
-Date-ranged non-full-scan table and Markdown output includes a reminder, and
-JSON output includes the same message in `warnings`.
+directory. The scanner reads rollout files in the requested range and checks
+the last `token_count` timestamp of every earlier rollout before deciding
+whether to read it in full. This includes long sessions that started before the
+requested range without relying on file modification times.
 Use `--group-by account` or `--account-id <id>` to initialize/read
 `auth-account-history.json` and attribute `token_count` events by the account
 active at each event timestamp.
@@ -278,7 +273,7 @@ Aggregation and shaping options:
 | `-n, --limit <n>` | Cap output rows. For `sessions <session-id>`, this caps displayed events while totals still cover the whole matched session. |
 | `-T, --top <n>` | Session-list row count. When both `--top` and `--limit` are supplied to `stat sessions`, `--top` wins. |
 | `-d, --detail` | Show full event-level rows for `stat sessions <session-id>`. |
-| `-F, --full-scan` | Scan all session files instead of pruning by date. |
+| `-F, --full-scan` | Compatibility option. Default scanning already checks all earlier session files by tail timestamp. |
 | `-r, --reasoning-effort` | When grouping by `model`, append Codex reasoning effort to the model key. |
 | `-A, --account-id <id>` | Only include usage attributed to an account id. |
 | `--usage-mode-history-file <path>` | Apply local fast attribution history when estimating credits and USD. |

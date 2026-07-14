@@ -204,7 +204,7 @@ fn append_diagnostics(
     lines.push(String::new());
     lines.push("Diagnostics:".to_string());
     lines.push(format!(
-        "  Scan all files: {}",
+        "  --full-scan requested: {}",
         if diagnostics.scan.scan_all_files {
             "yes"
         } else {
