@@ -168,7 +168,6 @@ fn prepare_usage_scan(options: &ResolvedStatOptions) -> Result<PreparedUsageScan
         SessionScanOptions {
             sessions_dir: &options.sessions_dir,
             range,
-            scan_all_files: options.scan_all_files,
         },
         read_last_token_count_timestamp,
     )?;
@@ -581,6 +580,54 @@ mod tests {
         assert_eq!(report.records[0].file_path, path_to_string(archived_file));
         assert_eq!(report.records[0].usage.total_tokens, 2);
         assert_eq!(report.diagnostics.read_files, 1);
+    }
+
+    #[test]
+    fn usage_scan_reads_old_in_range_usage_without_full_scan() {
+        let temp = TempDir::new().expect("tempdir");
+        let sessions_dir = temp.path().join("sessions");
+        write_session_file(
+            &sessions_dir,
+            2020,
+            1,
+            1,
+            "rollout-2020-01-01T00-00-00-long-lived-session.jsonl",
+            &[token_count_line("2999-01-01T00:00:01.000Z")],
+        );
+
+        let read = |scan_all_files| {
+            read_usage_records_report(&UsageRecordsReadOptions {
+                start: utc_time(2999, 1, 1, 0),
+                end: utc_time(2999, 1, 1, 1),
+                sessions_dir: sessions_dir.clone(),
+                scan_all_files,
+                account_history_file: None,
+                usage_mode_history_file: None,
+                account_id: None,
+            })
+            .expect("read usage report")
+        };
+
+        let default_report = read(false);
+        let compatibility_report = read(true);
+
+        assert_eq!(default_report.records.len(), 1);
+        assert_eq!(default_report.records[0].usage.total_tokens, 2);
+        assert_eq!(default_report.diagnostics.tail_read_files, 1);
+        assert_eq!(default_report.diagnostics.tail_read_hits, 1);
+        assert_eq!(default_report.diagnostics.read_files, 1);
+        assert_eq!(
+            default_report.records.len(),
+            compatibility_report.records.len()
+        );
+        assert_eq!(
+            default_report.records[0].usage.total_tokens,
+            compatibility_report.records[0].usage.total_tokens
+        );
+        assert_eq!(
+            default_report.diagnostics.included_usage_events,
+            compatibility_report.diagnostics.included_usage_events
+        );
     }
 
     #[test]

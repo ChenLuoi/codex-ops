@@ -478,7 +478,7 @@ fn append_usage_notes<T: UsageReportNotes>(lines: &mut Vec<String>, report: &T, 
             lines.push(String::new());
             lines.push("Diagnostics:".to_string());
             lines.push(format!(
-                "  Full file scan: {}",
+                "  --full-scan requested: {}",
                 if diagnostics.scan_all_files {
                     "yes"
                 } else {
@@ -498,7 +498,7 @@ fn append_usage_notes<T: UsageReportNotes>(lines: &mut Vec<String>, report: &T, 
                 format_integer(diagnostics.read_files)
             ));
             lines.push(format!(
-                "  Files skipped by date/mtime: {}",
+                "  Files skipped by date/filename: {}",
                 format_integer(diagnostics.skipped_files)
             ));
             lines.push(format!(
@@ -512,18 +512,6 @@ fn append_usage_notes<T: UsageReportNotes>(lines: &mut Vec<String>, report: &T, 
             lines.push(format!(
                 "  Tail token read hits: {}",
                 format_integer(diagnostics.tail_read_hits)
-            ));
-            lines.push(format!(
-                "  File mtimes read: {}",
-                format_integer(diagnostics.mtime_read_files)
-            ));
-            lines.push(format!(
-                "  File mtime hits requiring tail read: {}",
-                format_integer(diagnostics.mtime_tail_hits)
-            ));
-            lines.push(format!(
-                "  File mtime hits requiring full read: {}",
-                format_integer(diagnostics.mtime_read_hits)
             ));
             lines.push(format!(
                 "  Fork files detected: {}",
@@ -1331,15 +1319,12 @@ mod tests {
     }
 
     #[test]
-    fn verbose_diagnostics_include_tail_and_mtime_counts() {
+    fn verbose_diagnostics_include_tail_counts() {
         let mut report = sample_usage_stats_report();
         let mut diagnostics = UsageDiagnostics::new(8, false);
         diagnostics.read_files = 3;
         diagnostics.tail_read_files = 5;
         diagnostics.tail_read_hits = 2;
-        diagnostics.mtime_read_files = 4;
-        diagnostics.mtime_tail_hits = 3;
-        diagnostics.mtime_read_hits = 1;
         report.diagnostics = Some(diagnostics);
 
         let text = format_usage_stats(&report, StatFormat::Table, true).expect("table");
@@ -1347,9 +1332,6 @@ mod tests {
         assert!(text.contains("Full files read: 3"));
         assert!(text.contains("Tail token reads: 5"));
         assert!(text.contains("Tail token read hits: 2"));
-        assert!(text.contains("File mtimes read: 4"));
-        assert!(text.contains("File mtime hits requiring tail read: 3"));
-        assert!(text.contains("File mtime hits requiring full read: 1"));
     }
 
     fn sample_usage_stats_report() -> UsageStatsReport {

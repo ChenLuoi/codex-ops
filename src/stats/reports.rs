@@ -711,13 +711,6 @@ pub(super) fn usage_warnings(
     let mut warnings = Vec::new();
 
     if let Some(diagnostics) = diagnostics {
-        if diagnostics.prefiltered_files > 0 && !diagnostics.scan_all_files {
-            warnings.push(format!(
-                "{} session file(s) were prefiltered and may contain usage events within the time range. Use --full-scan to include all files.",
-                diagnostics.prefiltered_files
-            ));
-        }
-
         if diagnostics.skipped_events.missing_metadata > 0 {
             warnings.push(format!(
                 "{} token count event(s) were skipped due to missing metadata.",
@@ -857,7 +850,7 @@ mod tests {
             &unpriced_models,
         );
 
-        assert!(warnings.iter().any(|line| line.contains("--full-scan")));
+        assert!(!warnings.iter().any(|line| line.contains("--full-scan")));
         assert!(warnings
             .iter()
             .any(|line| line.contains("missing metadata")));

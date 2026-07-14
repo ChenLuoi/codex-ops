@@ -19,15 +19,10 @@ const DEFAULT_MAX_FILE_SCAN_THREADS: usize = 1;
 const DEFAULT_MAX_FILE_SCAN_THREADS: usize = 8;
 
 const FILE_SCAN_WORKER_MIN_FILES: usize = 64;
-const DAY_MS: i64 = 24 * 60 * 60 * 1000;
-const BALANCED_SCAN_MIN_LOOKBACK_MS: i64 = 7 * DAY_MS;
-const BALANCED_SCAN_MAX_LOOKBACK_MS: i64 = 30 * DAY_MS;
-
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct SessionScanOptions<'a> {
     pub(crate) sessions_dir: &'a Path,
     pub(crate) range: DateRange,
-    pub(crate) scan_all_files: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -63,47 +58,27 @@ pub(crate) struct SessionScanDiagnostics {
 #[derive(Default)]
 struct JsonlFileListing {
     files: Vec<PathBuf>,
-    tail_candidates: Vec<TailPrefilterCandidate>,
-}
-
-struct TailPrefilterCandidate {
-    path: PathBuf,
-    source: TailPrefilterSource,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum TailPrefilterSource {
-    Lookback,
-    Mtime,
+    tail_candidates: Vec<PathBuf>,
 }
 
 #[derive(Clone, Copy)]
 struct JsonlScanPolicy {
     start: DateTime<Utc>,
     end: DateTime<Utc>,
-    lookback_start: DateTime<Utc>,
-    scan_all_files: bool,
 }
 
 impl JsonlScanPolicy {
-    fn new(range: DateRange, scan_all_files: bool) -> Self {
-        let duration_ms = (range.end - range.start).num_milliseconds().max(0);
-        let lookback_ms =
-            (duration_ms / 2).clamp(BALANCED_SCAN_MIN_LOOKBACK_MS, BALANCED_SCAN_MAX_LOOKBACK_MS);
-
+    fn new(range: DateRange) -> Self {
         Self {
             start: range.start,
             end: range.end,
-            lookback_start: range.start - Duration::milliseconds(lookback_ms),
-            scan_all_files,
         }
     }
 }
 
 enum JsonlFileAction {
     Read,
-    TailPrefilter(TailPrefilterSource),
-    MtimeCheck,
+    TailPrefilter,
     Skip,
 }
 
@@ -118,16 +93,11 @@ where
     let listing = list_jsonl_files(
         options.sessions_dir,
         options.range,
-        options.scan_all_files,
         Some(Vec::new()),
         &mut diagnostics,
     )?;
-    let archived_listing = list_archived_jsonl_files(
-        options.sessions_dir,
-        options.range,
-        options.scan_all_files,
-        &mut diagnostics,
-    )?;
+    let archived_listing =
+        list_archived_jsonl_files(options.sessions_dir, options.range, &mut diagnostics)?;
     let mut files = listing.files;
     files.extend(archived_listing.files);
     let mut tail_candidates = listing.tail_candidates;
@@ -206,7 +176,6 @@ fn configured_file_scan_worker_count() -> Result<Option<usize>, AppError> {
 fn list_archived_jsonl_files(
     sessions_dir: &Path,
     range: DateRange,
-    scan_all_files: bool,
     diagnostics: &mut SessionScanDiagnostics,
 ) -> Result<JsonlFileListing, AppError> {
     let Some(archived_dir) = archived_sessions_dir_for(sessions_dir) else {
@@ -219,13 +188,7 @@ fn list_archived_jsonl_files(
         return Ok(JsonlFileListing::default());
     }
 
-    list_jsonl_files(
-        &archived_dir,
-        range,
-        scan_all_files,
-        Some(Vec::new()),
-        diagnostics,
-    )
+    list_jsonl_files(&archived_dir, range, Some(Vec::new()), diagnostics)
 }
 
 fn archived_sessions_dir_for(sessions_dir: &Path) -> Option<PathBuf> {
@@ -534,7 +497,6 @@ fn count_fork_replay_lines_streaming(
 fn list_jsonl_files(
     root: &Path,
     range: DateRange,
-    scan_all_files: bool,
     date_parts: Option<Vec<String>>,
     diagnostics: &mut SessionScanDiagnostics,
 ) -> Result<JsonlFileListing, AppError> {
@@ -552,7 +514,7 @@ fn list_jsonl_files(
     entries.sort_by_key(|entry| entry.file_name());
 
     let mut listing = JsonlFileListing::default();
-    let policy = JsonlScanPolicy::new(range, scan_all_files);
+    let policy = JsonlScanPolicy::new(range);
 
     for entry in entries {
         let path = entry.path();
@@ -571,8 +533,7 @@ fn list_jsonl_files(
                 }
             }
 
-            let child_listing =
-                list_jsonl_files(&path, range, scan_all_files, next_date_parts, diagnostics)?;
+            let child_listing = list_jsonl_files(&path, range, next_date_parts, diagnostics)?;
             listing.files.extend(child_listing.files);
             listing
                 .tail_candidates
@@ -582,30 +543,14 @@ fn list_jsonl_files(
         {
             match classify_jsonl_file(&path, policy) {
                 JsonlFileAction::Read => listing.files.push(path),
-                JsonlFileAction::TailPrefilter(source) => listing
-                    .tail_candidates
-                    .push(TailPrefilterCandidate { path, source }),
-                JsonlFileAction::MtimeCheck => {
-                    diagnostics.mtime_read_files += 1;
-                    if file_modified_at_or_after(&path, policy.start)? {
-                        diagnostics.mtime_tail_hits += 1;
-                        listing.tail_candidates.push(TailPrefilterCandidate {
-                            path,
-                            source: TailPrefilterSource::Mtime,
-                        });
-                    } else {
-                        diagnostics.skipped_files += 1;
-                    }
-                }
+                JsonlFileAction::TailPrefilter => listing.tail_candidates.push(path),
                 JsonlFileAction::Skip => diagnostics.skipped_files += 1,
             }
         }
     }
 
     listing.files.sort();
-    listing
-        .tail_candidates
-        .sort_by(|left, right| left.path.cmp(&right.path));
+    listing.tail_candidates.sort();
     Ok(listing)
 }
 
@@ -685,24 +630,11 @@ fn classify_jsonl_file(path: &Path, policy: JsonlScanPolicy) -> JsonlFileAction 
         return JsonlFileAction::Read;
     }
 
-    if policy.scan_all_files || timestamp >= policy.lookback_start {
-        return JsonlFileAction::TailPrefilter(TailPrefilterSource::Lookback);
-    }
-
-    JsonlFileAction::MtimeCheck
-}
-
-fn file_modified_at_or_after(path: &Path, start: DateTime<Utc>) -> Result<bool, AppError> {
-    let modified = fs::metadata(path)
-        .and_then(|metadata| metadata.modified())
-        .map_err(|error| AppError::new(error.to_string()))?;
-    let modified_at = DateTime::<Utc>::from(modified);
-
-    Ok(modified_at >= start)
+    JsonlFileAction::TailPrefilter
 }
 
 fn prefilter_files_by_last_event<F>(
-    files: &[TailPrefilterCandidate],
+    files: &[PathBuf],
     start: DateTime<Utc>,
     diagnostics: &mut SessionScanDiagnostics,
     read_tail_timestamp: &mut F,
@@ -714,16 +646,13 @@ where
 
     for candidate in files {
         diagnostics.tail_read_files += 1;
-        let last_event_at = read_tail_timestamp(&candidate.path)?;
+        let last_event_at = read_tail_timestamp(candidate)?;
 
         if last_event_at.is_some_and(|timestamp| timestamp < start) {
             diagnostics.prefiltered_files += 1;
         } else {
             diagnostics.tail_read_hits += 1;
-            if candidate.source == TailPrefilterSource::Mtime {
-                diagnostics.mtime_read_hits += 1;
-            }
-            kept.push(candidate.path.clone());
+            kept.push(candidate.clone());
         }
     }
 
@@ -776,26 +705,13 @@ mod tests {
     }
 
     #[test]
-    fn balanced_scan_lookback_clamps_between_seven_and_thirty_days() {
+    fn scan_policy_keeps_the_requested_range() {
         let start = utc_time(2026, 5, 21, 0);
+        let end = start + Duration::days(120);
+        let policy = JsonlScanPolicy::new(DateRange { start, end });
 
-        let short_policy = JsonlScanPolicy::new(
-            DateRange {
-                start,
-                end: start + Duration::days(1),
-            },
-            false,
-        );
-        assert_eq!(short_policy.lookback_start, start - Duration::days(7));
-
-        let long_policy = JsonlScanPolicy::new(
-            DateRange {
-                start,
-                end: start + Duration::days(120),
-            },
-            false,
-        );
-        assert_eq!(long_policy.lookback_start, start - Duration::days(30));
+        assert_eq!(policy.start, start);
+        assert_eq!(policy.end, end);
     }
 
     #[test]
@@ -817,7 +733,6 @@ mod tests {
                 start: utc_time(2026, 5, 21, 0),
                 end: utc_time(2026, 5, 21, 23),
             },
-            false,
             Some(Vec::new()),
             &mut diagnostics,
         )
@@ -829,7 +744,7 @@ mod tests {
     }
 
     #[test]
-    fn old_files_before_lookback_use_mtime_before_tail_prefilter() {
+    fn old_files_before_range_are_tail_prefiltered_without_mtime() {
         let temp = TempDir::new().expect("tempdir");
         let start = utc_time(2000, 1, 1, 0);
         let end = utc_time(2000, 1, 2, 0);
@@ -846,7 +761,6 @@ mod tests {
         let listing = list_jsonl_files(
             temp.path(),
             DateRange { start, end },
-            false,
             Some(Vec::new()),
             &mut diagnostics,
         )
@@ -854,22 +768,16 @@ mod tests {
 
         assert!(listing.files.is_empty());
         assert_eq!(listing.tail_candidates.len(), 1);
-        assert_eq!(listing.tail_candidates[0].path, file);
-        assert_eq!(
-            listing.tail_candidates[0].source,
-            TailPrefilterSource::Mtime
-        );
-        assert_eq!(diagnostics.mtime_read_files, 1);
-        assert_eq!(diagnostics.mtime_tail_hits, 1);
+        assert_eq!(listing.tail_candidates[0], file);
         assert_eq!(diagnostics.skipped_directories, 0);
     }
 
     #[test]
-    fn old_files_before_lookback_with_old_mtime_are_skipped() {
+    fn old_files_with_old_mtime_are_still_tail_prefiltered() {
         let temp = TempDir::new().expect("tempdir");
         let start = utc_time(2999, 1, 1, 0);
         let end = utc_time(2999, 1, 2, 0);
-        write_session_file(
+        let file = write_session_file(
             temp.path(),
             2020,
             1,
@@ -882,41 +790,25 @@ mod tests {
         let listing = list_jsonl_files(
             temp.path(),
             DateRange { start, end },
-            false,
             Some(Vec::new()),
             &mut diagnostics,
         )
         .expect("list files");
 
         assert!(listing.files.is_empty());
-        assert!(listing.tail_candidates.is_empty());
-        assert_eq!(diagnostics.mtime_read_files, 1);
-        assert_eq!(diagnostics.mtime_tail_hits, 0);
-        assert_eq!(diagnostics.skipped_files, 1);
+        assert_eq!(listing.tail_candidates, vec![file]);
+        assert_eq!(diagnostics.skipped_files, 0);
         assert_eq!(diagnostics.skipped_directories, 0);
     }
 
     #[test]
-    fn tail_prefilter_tracks_hits_and_mtime_final_hits() {
+    fn tail_prefilter_tracks_hits() {
         let temp = TempDir::new().expect("tempdir");
         let start = utc_time(2026, 5, 21, 0);
         let stale = temp.path().join("stale.jsonl");
         let active = temp.path().join("active.jsonl");
         let unknown = temp.path().join("unknown.jsonl");
-        let candidates = vec![
-            TailPrefilterCandidate {
-                path: stale.clone(),
-                source: TailPrefilterSource::Lookback,
-            },
-            TailPrefilterCandidate {
-                path: active.clone(),
-                source: TailPrefilterSource::Mtime,
-            },
-            TailPrefilterCandidate {
-                path: unknown.clone(),
-                source: TailPrefilterSource::Lookback,
-            },
-        ];
+        let candidates = vec![stale.clone(), active.clone(), unknown.clone()];
         let mut diagnostics = SessionScanDiagnostics::default();
 
         let kept =
@@ -935,7 +827,6 @@ mod tests {
         assert_eq!(diagnostics.tail_read_files, 3);
         assert_eq!(diagnostics.tail_read_hits, 2);
         assert_eq!(diagnostics.prefiltered_files, 1);
-        assert_eq!(diagnostics.mtime_read_hits, 1);
     }
 
     #[test]
@@ -958,7 +849,6 @@ mod tests {
                     start: utc_time(2026, 5, 21, 0),
                     end: utc_time(2026, 5, 21, 2),
                 },
-                scan_all_files: false,
             },
             |_| Ok(None),
         )
@@ -1006,7 +896,6 @@ mod tests {
                     start: utc_time(2026, 5, 21, 0),
                     end: utc_time(2026, 5, 21, 1),
                 },
-                scan_all_files: false,
             },
             |_| Ok(None),
         )
