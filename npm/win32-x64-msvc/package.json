@@ -1,6 +1,6 @@
 {
   "name": "@codexops/win32-x64-msvc",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Prebuilt codex-ops Rust binary for Windows x64.",
   "homepage": "https://github.com/ChenLuoi/codex-ops#readme",
   "bugs": {
