@@ -20,7 +20,7 @@ use crate::limits::{
     build_limit_windows_report, read_rate_limit_samples_report, LimitReportOptions,
     LimitWindowSelector, RateLimitSamplesReadOptions,
 };
-use crate::pricing::{calculate_credit_cost_with_context, PricingContext};
+use crate::pricing::{calculate_credit_cost_with_context_at, PricingContext};
 use crate::storage::{
     normalize_optional_string, path_to_string, resolve_storage_paths, StorageOptions,
 };
@@ -178,10 +178,11 @@ pub fn read_usage_records_report(
     let mut fast_attributed_credits = 0.0;
     let mut diagnostics = process_usage_records(&resolved, |record| {
         if record.usage_mode.is_fast() {
-            let cost = calculate_credit_cost_with_context(
+            let cost = calculate_credit_cost_with_context_at(
                 record.model,
                 record.usage.pricing_usage(),
                 PricingContext::fast(),
+                record.timestamp,
             );
             fast_attributed_calls += 1;
             fast_attributed_credits += cost.credits;

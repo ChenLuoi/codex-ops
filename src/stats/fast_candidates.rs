@@ -1,6 +1,6 @@
 use crate::format::round_credits;
 use crate::limits::{RateLimitSample, RateLimitSamplesReport};
-use crate::pricing::{calculate_credit_cost_with_context, PricingContext};
+use crate::pricing::{calculate_credit_cost_with_context_at, PricingContext};
 use crate::stats::{UsageRecord, UsageRecordsReport};
 use chrono::{DateTime, Utc};
 use serde::Serialize;
@@ -179,15 +179,17 @@ struct IntervalUsageSummary {
 
 impl IntervalUsageSummary {
     fn add(&mut self, record: &UsageRecord) {
-        let normal_cost = calculate_credit_cost_with_context(
+        let normal_cost = calculate_credit_cost_with_context_at(
             &record.model,
             record.usage.pricing_usage(),
             PricingContext::normal(),
+            record.timestamp,
         );
-        let fast_cost = calculate_credit_cost_with_context(
+        let fast_cost = calculate_credit_cost_with_context_at(
             &record.model,
             record.usage.pricing_usage(),
             PricingContext::fast(),
+            record.timestamp,
         );
         let expected_multiplier = if normal_cost.credits > PERCENT_EPSILON {
             fast_cost.credits / normal_cost.credits
@@ -641,10 +643,11 @@ fn summarize_segment(segment: &CandidateSegment, records: &[UsageRecord]) -> Int
 }
 
 fn normal_credits_for_record(record: &UsageRecord) -> f64 {
-    calculate_credit_cost_with_context(
+    calculate_credit_cost_with_context_at(
         &record.model,
         record.usage.pricing_usage(),
         PricingContext::normal(),
+        record.timestamp,
     )
     .credits
 }
@@ -1386,6 +1389,38 @@ mod tests {
         assert_eq!(report.diagnostics.legacy_usage_matches, 0);
         assert_eq!(report.diagnostics.ambiguous_legacy_usage_records, 1);
         assert_eq!(report.diagnostics.segments_with_usage, 1);
+    }
+
+    #[test]
+    fn candidate_pricing_uses_record_timestamp_across_rate_card_cutoff() {
+        let reset_at = parse_time("2026-07-30T22:17:05.167Z");
+        let old = record(
+            "old",
+            "gpt-5.6-terra",
+            "2026-07-30T17:17:05.166Z",
+            1_000_000,
+            reset_at,
+        );
+        let new = record(
+            "new",
+            "gpt-5.6-terra",
+            "2026-07-30T17:17:05.167Z",
+            1_000_000,
+            reset_at,
+        );
+        let mut summary = IntervalUsageSummary::default();
+
+        summary.add(&old);
+        summary.add(&new);
+
+        assert_close(normal_credits_for_record(&old), 62.5, "old normal credits");
+        assert_close(normal_credits_for_record(&new), 50.0, "new normal credits");
+        assert_close(summary.normal_credits, 112.5, "combined normal credits");
+        assert_close(
+            summary.expected_fast_multiplier(),
+            2.5,
+            "combined fast multiplier",
+        );
     }
 
     #[test]

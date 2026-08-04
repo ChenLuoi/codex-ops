@@ -1,7 +1,7 @@
 use crate::error::AppError;
 use crate::format::{credits_to_usd, round_credits};
 use crate::pricing::{
-    calculate_credit_cost_with_context, PricingContext, TokenUsage as PricingTokenUsage,
+    calculate_credit_cost_with_context_at, PricingContext, TokenUsage as PricingTokenUsage,
 };
 use crate::stats::{UsageRateLimit, UsageRecord};
 use chrono::{DateTime, Duration, Utc};
@@ -728,7 +728,7 @@ fn usage_totals_for_targets(
 ) -> Vec<WindowUsageTotals> {
     let mut totals = vec![WindowUsageTotals::default(); targets.len()];
     for record in records {
-        let cost = calculate_credit_cost_with_context(
+        let cost = calculate_credit_cost_with_context_at(
             &record.model,
             PricingTokenUsage {
                 input_tokens: record.usage.input_tokens.max(0) as u64,
@@ -740,6 +740,7 @@ fn usage_totals_for_targets(
             } else {
                 PricingContext::normal()
             },
+            record.timestamp,
         );
         for target_index in usage_target_indexes_for_record(record, targets) {
             let target_totals = totals
@@ -2078,6 +2079,42 @@ mod tests {
         attach_usage_to_limit_windows(&mut windows, &records);
 
         assert!(windows.iter().all(|window| window.total_tokens == 0));
+    }
+
+    #[test]
+    fn usage_totals_price_records_across_rate_card_cutoff() {
+        let cutoff = DateTime::parse_from_rfc3339("2026-07-30T17:17:05.167Z")
+            .expect("cutoff")
+            .with_timezone(&Utc);
+        let mut old = usage_record_without_rate_limits();
+        old.timestamp = cutoff - Duration::milliseconds(1);
+        old.model = "gpt-5.6-terra".to_string();
+        old.account_id = Some("account-fixture".to_string());
+        old.usage.input_tokens = 1_000_000;
+        old.usage.output_tokens = 0;
+        old.usage.total_tokens = 1_000_000;
+
+        let mut new_fast = old.clone();
+        new_fast.timestamp = cutoff;
+        new_fast.session_id = "usage-session-fast".to_string();
+        new_fast.usage_mode = crate::stats::UsageMode::Fast;
+
+        let reset_at = cutoff + Duration::hours(1);
+        let targets = vec![UsageWindowTarget {
+            start: cutoff - Duration::seconds(1),
+            end: reset_at,
+            account_id: Some("account-fixture".to_string()),
+            plan_type: Some("pro".to_string()),
+            limit_id: Some("cutoff".to_string()),
+            window_minutes: 300,
+            reset_at,
+        }];
+
+        let totals = usage_totals_for_targets(&[old, new_fast], &targets);
+
+        assert_eq!(totals.len(), 1);
+        assert_eq!(totals[0].total_tokens, 2_000_000);
+        assert_eq!(totals[0].credits, 187.5);
     }
 
     #[test]
