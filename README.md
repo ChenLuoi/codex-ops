@@ -459,22 +459,38 @@ Limit options:
 | `-v, --verbose` | Include scan diagnostics; with JSON, include source file/line evidence. |
 
 Pricing data is statically embedded from `data/codex-rate-card.json`. The
-current snapshot source is OpenAI Help Center Codex rate card, checked
-2026-07-10.
+current snapshot source is the [OpenAI Help Center Codex rate
+card](https://help.openai.com/en/articles/20001106-codex-rate-card), checked
+2026-08-04. The table below lists the latest effective version of every priced
+model in the embedded rate card.
 
-| Model | Input / 1M | Cached input / 1M | Output / 1M | Note |
-| --- | ---: | ---: | ---: | --- |
-| GPT-5.6 Sol | 125 credits | 12.50 credits | 750 credits |  |
-| GPT-5.6 Terra | 62.50 credits | 6.250 credits | 375 credits |  |
-| GPT-5.6 Luna | 25 credits | 2.50 credits | 150 credits |  |
-| GPT-5.5 | 125 credits | 12.50 credits | 750 credits | fast attribution multiplier 2.5x |
-| GPT-5.4 | 62.50 credits | 6.250 credits | 375 credits | fast attribution multiplier 2.0x |
-| GPT-5.4-mini | 18.75 credits | 1.875 credits | 113 credits |  |
-| GPT-5.3-Codex | 43.75 credits | 4.375 credits | 350 credits |  |
-| GPT-5.2 | 43.75 credits | 4.375 credits | 350 credits |  |
-| GPT-5.3-Codex-Spark | 0 credits | 0 credits | 0 credits | research preview; charged at 0 credits |
-| GPT-Image-2 (image) | 200 credits | 50 credits | 750 credits |  |
-| GPT-Image-2 (text) | 125 credits | 31.25 credits | 250 credits |  |
+| Model | Input / 1M | Cached input / 1M | Output / 1M | Fast multiplier | Note |
+| --- | ---: | ---: | ---: | ---: | --- |
+| GPT-5.6 Sol | 125 credits | 12.50 credits | 750 credits | 2.5x |  |
+| GPT-5.6 Terra | 50 credits | 5 credits | 300 credits | 2.5x |  |
+| GPT-5.6 Luna | 5 credits | 0.5 credits | 30 credits | 2.5x |  |
+| GPT-5.5 | 125 credits | 12.50 credits | 750 credits | 2.5x |  |
+| GPT-5.4 | 62.50 credits | 6.250 credits | 375 credits | 2.0x |  |
+| GPT-5.4-mini | 18.75 credits | 1.875 credits | 113 credits | 1.0x |  |
+| GPT-5.3-Codex | 43.75 credits | 4.375 credits | 350 credits | 1.0x |  |
+| GPT-5.2 | 43.75 credits | 4.375 credits | 350 credits | 1.0x |  |
+| GPT-5.3-Codex-Spark | 0 credits | 0 credits | 0 credits | 1.0x | research preview; charged at 0 credits |
+| GPT-Image-2 (image) | 200 credits | 50 credits | 750 credits | 1.0x |  |
+| GPT-Image-2 (text) | 125 credits | 31.25 credits | 250 credits | 1.0x |  |
+
+The Fast multipliers follow the [Codex Fast mode
+documentation](https://learn.chatgpt.com/docs/agent-configuration/speed#fast-mode).
+A `1.0x` value means that the embedded rate card applies no additional Fast
+credit multiplier for that model.
+
+Historical price changes are selected using each usage record's UTC timestamp.
+A record at the exact effective timestamp uses the new price. Prices below are
+shown as input / cached input / output credits per 1M tokens.
+
+| Model | Old price | New price | Effective at (UTC) | Related event |
+| --- | --- | --- | --- | --- |
+| GPT-5.6 Terra | 62.50 / 6.250 / 375 credits (2.5x fast) | 50 / 5 / 300 credits (2.5x fast) | 2026-07-30T17:17:05.167Z | [GPT-5.6 Terra and Luna price reduction](https://x.com/OpenAI/status/2082878156483219672); official announcement time used as the auditable proxy cutoff |
+| GPT-5.6 Luna | 25 / 2.50 / 150 credits (2.5x fast) | 5 / 0.5 / 30 credits (2.5x fast) | 2026-07-30T17:17:05.167Z | [GPT-5.6 Terra and Luna price reduction](https://x.com/OpenAI/status/2082878156483219672); official announcement time used as the auditable proxy cutoff |
 
 ## Development
 

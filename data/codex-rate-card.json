@@ -1,89 +1,179 @@
 {
   "source": {
     "name": "OpenAI Help Center Codex rate card",
-    "checked_at": "2026-07-10",
+    "url": "https://help.openai.com/en/articles/20001106-codex-rate-card",
+    "checked_at": "2026-08-04",
     "credit_to_usd": "25 credits = $1"
   },
+  "events": [
+    {
+      "key": "2026-07-30-gpt-5.6-price-reduction",
+      "title": "GPT-5.6 Terra and Luna price reduction",
+      "announced_at": "2026-07-30T17:17:05.167Z",
+      "url": "https://x.com/OpenAI/status/2082878156483219672",
+      "note": "The effective_at cutoff uses the official public announcement time as an auditable proxy because OpenAI did not publish the backend billing cutover time."
+    }
+  ],
   "models": [
     {
       "key": "gpt-5.6-sol",
       "label": "GPT-5.6 Sol",
-      "input_credits_per_million": 125.0,
-      "cached_input_credits_per_million": 12.5,
-      "output_credits_per_million": 750.0
+      "versions": [
+        {
+          "effective_at": null,
+          "input_credits_per_million": 125.0,
+          "cached_input_credits_per_million": 12.5,
+          "output_credits_per_million": 750.0,
+          "fast_credit_multiplier": 2.5
+        }
+      ]
     },
     {
       "key": "gpt-5.6-terra",
       "label": "GPT-5.6 Terra",
-      "input_credits_per_million": 62.5,
-      "cached_input_credits_per_million": 6.25,
-      "output_credits_per_million": 375.0
+      "versions": [
+        {
+          "effective_at": null,
+          "input_credits_per_million": 62.5,
+          "cached_input_credits_per_million": 6.25,
+          "output_credits_per_million": 375.0,
+          "fast_credit_multiplier": 2.5
+        },
+        {
+          "effective_at": "2026-07-30T17:17:05.167Z",
+          "event": "2026-07-30-gpt-5.6-price-reduction",
+          "input_credits_per_million": 50.0,
+          "cached_input_credits_per_million": 5.0,
+          "output_credits_per_million": 300.0,
+          "fast_credit_multiplier": 2.5
+        }
+      ]
     },
     {
       "key": "gpt-5.6-luna",
       "label": "GPT-5.6 Luna",
-      "input_credits_per_million": 25.0,
-      "cached_input_credits_per_million": 2.5,
-      "output_credits_per_million": 150.0
+      "versions": [
+        {
+          "effective_at": null,
+          "input_credits_per_million": 25.0,
+          "cached_input_credits_per_million": 2.5,
+          "output_credits_per_million": 150.0,
+          "fast_credit_multiplier": 2.5
+        },
+        {
+          "effective_at": "2026-07-30T17:17:05.167Z",
+          "event": "2026-07-30-gpt-5.6-price-reduction",
+          "input_credits_per_million": 5.0,
+          "cached_input_credits_per_million": 0.5,
+          "output_credits_per_million": 30.0,
+          "fast_credit_multiplier": 2.5
+        }
+      ]
     },
     {
       "key": "gpt-5.5",
       "label": "GPT-5.5",
-      "input_credits_per_million": 125.0,
-      "cached_input_credits_per_million": 12.5,
-      "output_credits_per_million": 750.0,
-      "fast_credit_multiplier": 2.5
+      "versions": [
+        {
+          "effective_at": null,
+          "input_credits_per_million": 125.0,
+          "cached_input_credits_per_million": 12.5,
+          "output_credits_per_million": 750.0,
+          "fast_credit_multiplier": 2.5
+        }
+      ]
     },
     {
       "key": "gpt-5.4",
       "label": "GPT-5.4",
-      "input_credits_per_million": 62.5,
-      "cached_input_credits_per_million": 6.25,
-      "output_credits_per_million": 375.0,
-      "fast_credit_multiplier": 2.0
+      "versions": [
+        {
+          "effective_at": null,
+          "input_credits_per_million": 62.5,
+          "cached_input_credits_per_million": 6.25,
+          "output_credits_per_million": 375.0,
+          "fast_credit_multiplier": 2.0
+        }
+      ]
     },
     {
       "key": "gpt-5.4-mini",
       "label": "GPT-5.4-mini",
-      "input_credits_per_million": 18.75,
-      "cached_input_credits_per_million": 1.875,
-      "output_credits_per_million": 113.0
+      "versions": [
+        {
+          "effective_at": null,
+          "input_credits_per_million": 18.75,
+          "cached_input_credits_per_million": 1.875,
+          "output_credits_per_million": 113.0,
+          "fast_credit_multiplier": 1.0
+        }
+      ]
     },
     {
       "key": "gpt-5.3-codex",
       "label": "GPT-5.3-Codex",
-      "input_credits_per_million": 43.75,
-      "cached_input_credits_per_million": 4.375,
-      "output_credits_per_million": 350.0
+      "versions": [
+        {
+          "effective_at": null,
+          "input_credits_per_million": 43.75,
+          "cached_input_credits_per_million": 4.375,
+          "output_credits_per_million": 350.0,
+          "fast_credit_multiplier": 1.0
+        }
+      ]
     },
     {
       "key": "gpt-5.2",
       "label": "GPT-5.2",
-      "input_credits_per_million": 43.75,
-      "cached_input_credits_per_million": 4.375,
-      "output_credits_per_million": 350.0
+      "versions": [
+        {
+          "effective_at": null,
+          "input_credits_per_million": 43.75,
+          "cached_input_credits_per_million": 4.375,
+          "output_credits_per_million": 350.0,
+          "fast_credit_multiplier": 1.0
+        }
+      ]
     },
     {
       "key": "gpt-5.3-codex-spark",
       "label": "GPT-5.3-Codex-Spark",
-      "input_credits_per_million": 0.0,
-      "cached_input_credits_per_million": 0.0,
-      "output_credits_per_million": 0.0,
+      "versions": [
+        {
+          "effective_at": null,
+          "input_credits_per_million": 0.0,
+          "cached_input_credits_per_million": 0.0,
+          "output_credits_per_million": 0.0,
+          "fast_credit_multiplier": 1.0
+        }
+      ],
       "note": "research preview; charged at 0 credits"
     },
     {
       "key": "gpt-image-2 (image)",
       "label": "GPT-Image-2 (image)",
-      "input_credits_per_million": 200.0,
-      "cached_input_credits_per_million": 50.0,
-      "output_credits_per_million": 750.0
+      "versions": [
+        {
+          "effective_at": null,
+          "input_credits_per_million": 200.0,
+          "cached_input_credits_per_million": 50.0,
+          "output_credits_per_million": 750.0,
+          "fast_credit_multiplier": 1.0
+        }
+      ]
     },
     {
       "key": "gpt-image-2 (text)",
       "label": "GPT-Image-2 (text)",
-      "input_credits_per_million": 125.0,
-      "cached_input_credits_per_million": 31.25,
-      "output_credits_per_million": 250.0
+      "versions": [
+        {
+          "effective_at": null,
+          "input_credits_per_million": 125.0,
+          "cached_input_credits_per_million": 31.25,
+          "output_credits_per_million": 250.0,
+          "fast_credit_multiplier": 1.0
+        }
+      ]
     }
   ],
   "knownUnpriced": []

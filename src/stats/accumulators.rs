@@ -8,7 +8,7 @@ use super::StatSort;
 use crate::format::{credits_to_usd, round_credits};
 use crate::limits::{LimitWindow, LimitWindowSelector, RateLimitDiagnostics};
 use crate::pricing::{
-    calculate_credit_cost_with_context, normalize_model_name, CreditCost, PricingContext,
+    calculate_credit_cost_with_context_at, normalize_model_name, CreditCost, PricingContext,
 };
 use crate::time::StatGroupBy;
 use chrono::{DateTime, Datelike, Local, Timelike, Utc};
@@ -1112,7 +1112,12 @@ fn record_credit_cost(record: &UsageRecordView<'_>) -> CreditCost {
     } else {
         PricingContext::normal()
     };
-    calculate_credit_cost_with_context(record.model, record.usage.pricing_usage(), context)
+    calculate_credit_cost_with_context_at(
+        record.model,
+        record.usage.pricing_usage(),
+        context,
+        record.timestamp,
+    )
 }
 
 fn add_fast_attribution(
@@ -1433,7 +1438,7 @@ fn format_unpriced_models(
 fn format_pricing_stub(model: &str) -> String {
     let key = normalize_model_name(model);
     format!(
-        "{{\n  \"key\": \"{key}\",\n  \"label\": \"{}\",\n  \"input_credits_per_million\": 0,\n  \"cached_input_credits_per_million\": 0,\n  \"output_credits_per_million\": 0\n}}",
+        "{{\n  \"key\": \"{key}\",\n  \"label\": \"{}\",\n  \"versions\": [\n    {{\n      \"effective_at\": null,\n      \"input_credits_per_million\": 0,\n      \"cached_input_credits_per_million\": 0,\n      \"output_credits_per_million\": 0,\n      \"fast_credit_multiplier\": 1\n    }}\n  ]\n}}",
         escape_double_quoted(model)
     )
 }
@@ -1613,6 +1618,59 @@ mod tests {
         );
     }
 
+    #[test]
+    fn prices_standard_and_fast_usage_across_rate_card_cutoff() {
+        let start = parse_time("2026-07-30T17:17:05.000Z");
+        let end = parse_time("2026-07-30T17:17:06.000Z");
+        let cutoff = parse_time("2026-07-30T17:17:05.167Z");
+        let mut accumulator = UsageStatsAccumulator::new(
+            start,
+            end,
+            StatGroupBy::Model,
+            "/sessions".to_string(),
+            false,
+            None,
+            None,
+        );
+        let old_usage = usage(1_000_000, 0, 1_000_000);
+        let new_usage = usage(1_000_000, 0, 1_000_000);
+
+        accumulator.add(test_record_with_mode(
+            cutoff - chrono::Duration::milliseconds(1),
+            "old-standard",
+            "gpt-5.6-terra",
+            UsageMode::Normal,
+            "/repo",
+            "/tmp/old.jsonl",
+            &old_usage,
+        ));
+        accumulator.add(test_record_with_mode(
+            cutoff,
+            "new-fast",
+            "gpt-5.6-terra",
+            UsageMode::Fast,
+            "/repo",
+            "/tmp/new.jsonl",
+            &new_usage,
+        ));
+
+        let report = accumulator.finish(None);
+        let standard = report
+            .rows
+            .iter()
+            .find(|row| row.key == "gpt-5.6-terra")
+            .expect("standard row");
+        let fast = report
+            .rows
+            .iter()
+            .find(|row| row.key == "gpt-5.6-terra-fast")
+            .expect("fast row");
+
+        assert_eq!(standard.credits, 62.5);
+        assert_eq!(fast.credits, 125.0);
+        assert_eq!(report.totals.credits, 187.5);
+    }
+
     fn test_record<'a>(
         timestamp: DateTime<Utc>,
         session_id: &'a str,
@@ -1669,5 +1727,11 @@ mod tests {
         Utc.with_ymd_and_hms(year, month, day, hour, 0, 0)
             .single()
             .expect("utc time")
+    }
+
+    fn parse_time(value: &str) -> DateTime<Utc> {
+        DateTime::parse_from_rfc3339(value)
+            .expect("timestamp")
+            .with_timezone(&Utc)
     }
 }
