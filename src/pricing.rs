@@ -185,8 +185,16 @@ pub fn normalize_model_name(model: &str) -> String {
 pub fn pricing_key_for_model(model: &str) -> String {
     let normalized = normalize_model_name(model);
     match normalized.as_str() {
+        "gpt-6 astra" | "astra" => "gpt-6-astra".to_string(),
+        "gpt-5.6" | "gpt-5.6 sol" => "gpt-5.6-sol".to_string(),
+        "daybreak blue" | "daybreak-blue" | "gpt-daybreak-blue" => {
+            "gpt-daybreak-blue-latest".to_string()
+        }
+        "daybreak red" | "daybreak-red" | "gpt-daybreak-red" | "gpt-5.6 cyber"
+        | "gpt-5.6-cyber" => "gpt-daybreak-red-latest".to_string(),
         "gpt-5.4 mini" => "gpt-5.4-mini".to_string(),
         "gpt-5.3 codex" => "gpt-5.3-codex".to_string(),
+        "gpt-5.3 codex spark" => "gpt-5.3-codex-spark".to_string(),
         "gpt-image-2:image"
         | "gpt-image-2-image"
         | "gpt-image-2 image"
@@ -293,6 +301,14 @@ pub fn list_known_unpriced_models() -> Vec<KnownUnpricedModel> {
     pricing
 }
 
+fn get_known_unpriced_model(model: &str) -> Option<&'static KnownUnpricedModel> {
+    let key = pricing_key_for_model(model);
+    rate_card()
+        .known_unpriced
+        .iter()
+        .find(|unpriced| unpriced.key == key)
+}
+
 pub fn calculate_credit_cost(model: &str, usage: TokenUsage) -> CreditCost {
     calculate_credit_cost_with_context(model, usage, PricingContext::normal())
 }
@@ -359,16 +375,21 @@ fn calculate_credit_cost_for_pricing(
                 credits: normal_credits * credit_multiplier,
             }
         }
-        None => CreditCost {
-            priced: false,
-            pricing_label: model.to_string(),
-            unpriced_reason: None,
-            billable_input_tokens,
-            cached_input_tokens,
-            output_tokens: usage.output_tokens,
-            credit_multiplier: 1.0,
-            credits: 0.0,
-        },
+        None => {
+            let known_unpriced = get_known_unpriced_model(model);
+            CreditCost {
+                priced: false,
+                pricing_label: known_unpriced
+                    .map(|unpriced| unpriced.label.clone())
+                    .unwrap_or_else(|| model.to_string()),
+                unpriced_reason: known_unpriced.and_then(|unpriced| unpriced.note.clone()),
+                billable_input_tokens,
+                cached_input_tokens,
+                output_tokens: usage.output_tokens,
+                credit_multiplier: 1.0,
+                credits: 0.0,
+            }
+        }
     }
 }
 
@@ -647,6 +668,20 @@ mod tests {
     fn normalizes_model_names_and_aliases() {
         assert_eq!(normalize_model_name("  GPT-5.4   MINI "), "gpt-5.4 mini");
         assert_eq!(pricing_key_for_model("GPT-5.4   MINI"), "gpt-5.4-mini");
+        assert_eq!(pricing_key_for_model("GPT-6 Astra"), "gpt-6-astra");
+        assert_eq!(pricing_key_for_model("gpt-5.6"), "gpt-5.6-sol");
+        assert_eq!(
+            pricing_key_for_model("Daybreak Blue"),
+            "gpt-daybreak-blue-latest"
+        );
+        assert_eq!(
+            pricing_key_for_model("gpt-5.6-cyber"),
+            "gpt-daybreak-red-latest"
+        );
+        assert_eq!(
+            pricing_key_for_model("GPT-5.3 Codex Spark"),
+            "gpt-5.3-codex-spark"
+        );
         assert_eq!(
             get_model_pricing("gpt-image-2.0:image")
                 .expect("image pricing")
@@ -678,7 +713,7 @@ mod tests {
     #[test]
     fn loads_gpt_5_6_pricing_from_rate_card() {
         let expected = [
-            ("gpt-5.6-sol", "GPT-5.6 Sol", 125.0, 12.5, 750.0),
+            ("gpt-5.6-sol", "GPT-5.6 Sol", 100.0, 10.0, 500.0),
             ("gpt-5.6-terra", "GPT-5.6 Terra", 50.0, 5.0, 300.0),
             ("gpt-5.6-luna", "GPT-5.6 Luna", 5.0, 0.5, 30.0),
         ];
@@ -694,6 +729,38 @@ mod tests {
     }
 
     #[test]
+    fn loads_astra_and_daybreak_pricing_from_rate_card() {
+        let expected = [
+            ("gpt-6-astra", "GPT-6 Astra", 250.0, 25.0, 1250.0, 2.5),
+            (
+                "gpt-daybreak-blue-latest",
+                "Daybreak Blue",
+                100.0,
+                10.0,
+                500.0,
+                2.5,
+            ),
+            (
+                "gpt-daybreak-red-latest",
+                "Daybreak Red",
+                312.5,
+                31.25,
+                1875.0,
+                1.0,
+            ),
+        ];
+
+        for (key, label, input, cached_input, output, fast_multiplier) in expected {
+            let pricing = get_model_pricing(key).expect("new model pricing");
+            assert_eq!(pricing.label, label);
+            assert_eq!(pricing.input_credits_per_million, input);
+            assert_eq!(pricing.cached_input_credits_per_million, cached_input);
+            assert_eq!(pricing.output_credits_per_million, output);
+            assert_eq!(pricing.fast_credit_multiplier, fast_multiplier);
+        }
+    }
+
+    #[test]
     fn applies_fast_credit_multiplier_from_rate_card() {
         let usage = TokenUsage {
             input_tokens: 1000,
@@ -705,6 +772,13 @@ mod tests {
         let gpt54 = calculate_credit_cost_with_context("gpt-5.4", usage, PricingContext::fast());
         let gpt56 =
             calculate_credit_cost_with_context("gpt-5.6-terra", usage, PricingContext::fast());
+        let astra =
+            calculate_credit_cost_with_context("gpt-6-astra", usage, PricingContext::fast());
+        let daybreak_blue = calculate_credit_cost_with_context(
+            "gpt-daybreak-blue-latest",
+            usage,
+            PricingContext::fast(),
+        );
 
         assert_eq!(gpt55.credit_multiplier, 2.5);
         assert!((gpt55.credits - 0.81875).abs() < 0.000001);
@@ -712,6 +786,10 @@ mod tests {
         assert!((gpt54.credits - 0.3275).abs() < 0.000001);
         assert_eq!(gpt56.credit_multiplier, 2.5);
         assert!((gpt56.credits - 0.3275).abs() < 0.000001);
+        assert_eq!(astra.credit_multiplier, 2.5);
+        assert!((astra.credits - 1.45).abs() < 0.000001);
+        assert_eq!(daybreak_blue.credit_multiplier, 2.5);
+        assert!((daybreak_blue.credits - 0.58).abs() < 0.000001);
     }
 
     #[test]
@@ -750,9 +828,9 @@ mod tests {
     }
 
     #[test]
-    fn spark_model_is_priced_at_zero_credits() {
+    fn spark_model_is_known_unpriced_with_a_separate_limit() {
         let cost = calculate_credit_cost(
-            "gpt-5.3-codex-spark",
+            "GPT-5.3 Codex Spark",
             TokenUsage {
                 input_tokens: 500,
                 cached_input_tokens: 0,
@@ -760,8 +838,12 @@ mod tests {
             },
         );
 
-        assert!(cost.priced);
+        assert!(!cost.priced);
         assert_eq!(cost.pricing_label, "GPT-5.3-Codex-Spark");
+        assert_eq!(
+            cost.unpriced_reason.as_deref(),
+            Some("research preview; uses a separate usage limit and has no token credit rate")
+        );
         assert_eq!(cost.credits, 0.0);
     }
 
@@ -778,19 +860,18 @@ mod tests {
 
     #[test]
     fn loads_source_metadata_from_static_rate_card() {
-        assert_eq!(
-            CODEX_RATE_CARD_SOURCE.name,
-            "OpenAI Help Center Codex rate card"
-        );
+        assert_eq!(CODEX_RATE_CARD_SOURCE.name, "OpenAI Codex pricing");
         assert_eq!(
             CODEX_RATE_CARD_SOURCE.url,
-            "https://help.openai.com/en/articles/20001106-codex-rate-card"
+            "https://learn.chatgpt.com/docs/pricing"
         );
-        assert_eq!(CODEX_RATE_CARD_SOURCE.checked_at, "2026-08-04");
+        assert_eq!(CODEX_RATE_CARD_SOURCE.checked_at, "2026-09-07");
         assert_eq!(CODEX_RATE_CARD_SOURCE.credit_to_usd, "25 credits = $1");
         assert!((CODEX_RATE_CARD_SOURCE.credits_per_usd - 25.0).abs() < f64::EPSILON);
-        assert_eq!(list_model_pricing().len(), 11);
-        assert!(list_known_unpriced_models().is_empty());
+        assert_eq!(list_model_pricing().len(), 13);
+        let unpriced = list_known_unpriced_models();
+        assert_eq!(unpriced.len(), 1);
+        assert_eq!(unpriced[0].key, "gpt-5.3-codex-spark");
     }
 
     #[test]
@@ -904,6 +985,27 @@ mod tests {
     }
 
     #[test]
+    fn selects_historical_sol_prices_at_the_promotional_cutoff() {
+        let cutoff = parse_timestamp("2026-09-04T00:00:00Z", "test.cutoff");
+        let usage = TokenUsage {
+            input_tokens: 1_000_000,
+            cached_input_tokens: 0,
+            output_tokens: 0,
+        };
+
+        let before = calculate_credit_cost_at(
+            "gpt-5.6-sol",
+            usage,
+            cutoff - chrono::Duration::milliseconds(1),
+        );
+        let at = calculate_credit_cost_at("gpt-5.6-sol", usage, cutoff);
+
+        assert_eq!(before.credits, 125.0);
+        assert_eq!(at.credits, 100.0);
+        assert_eq!(calculate_credit_cost("gpt-5.6", usage).credits, 100.0);
+    }
+
+    #[test]
     fn applies_gpt_5_6_fast_multiplier_to_old_and_new_prices() {
         let cutoff = parse_timestamp("2026-07-30T17:17:05.167Z", "test.cutoff");
         let usage = TokenUsage {
@@ -932,15 +1034,15 @@ mod tests {
     }
 
     #[test]
-    fn lists_price_changes_with_their_shared_event() {
+    fn lists_price_changes_with_their_events() {
         let changes = list_model_pricing_changes();
         let keys = changes
             .iter()
             .map(|change| change.model_key.as_str())
             .collect::<Vec<_>>();
 
-        assert_eq!(keys, vec!["gpt-5.6-luna", "gpt-5.6-terra"]);
-        for change in changes {
+        assert_eq!(keys, vec!["gpt-5.6-luna", "gpt-5.6-terra", "gpt-5.6-sol"]);
+        for change in changes.iter().take(2) {
             assert_eq!(
                 change.effective_at,
                 parse_timestamp("2026-07-30T17:17:05.167Z", "test.cutoff",)
@@ -949,6 +1051,15 @@ mod tests {
             assert_eq!(change.old_pricing.fast_credit_multiplier, 2.5);
             assert_eq!(change.new_pricing.fast_credit_multiplier, 2.5);
         }
+
+        let sol = changes.last().expect("Sol price change");
+        assert_eq!(
+            sol.effective_at,
+            parse_timestamp("2026-09-04T00:00:00Z", "test.cutoff")
+        );
+        assert_eq!(sol.event.key, "2026-09-04-gpt-5.6-sol-promotional-pricing");
+        assert_eq!(sol.old_pricing.input_credits_per_million, 125.0);
+        assert_eq!(sol.new_pricing.input_credits_per_million, 100.0);
     }
 
     #[test]

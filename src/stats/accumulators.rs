@@ -8,7 +8,7 @@ use super::StatSort;
 use crate::format::{credits_to_usd, round_credits};
 use crate::limits::{LimitWindow, LimitWindowSelector, RateLimitDiagnostics};
 use crate::pricing::{
-    calculate_credit_cost_with_context_at, normalize_model_name, CreditCost, PricingContext,
+    calculate_credit_cost_with_context_at, pricing_key_for_model, CreditCost, PricingContext,
 };
 use crate::time::StatGroupBy;
 use chrono::{DateTime, Datelike, Local, Timelike, Utc};
@@ -1405,7 +1405,7 @@ fn add_unpriced_model(
     usage: &TokenUsage,
     note: Option<String>,
 ) {
-    let pricing_key = normalize_model_name(model);
+    let pricing_key = pricing_key_for_model(model);
     let row = unpriced_models
         .entry(pricing_key.clone())
         .or_insert_with(|| UsageUnpricedModelRow {
@@ -1436,7 +1436,7 @@ fn format_unpriced_models(
 }
 
 fn format_pricing_stub(model: &str) -> String {
-    let key = normalize_model_name(model);
+    let key = pricing_key_for_model(model);
     format!(
         "{{\n  \"key\": \"{key}\",\n  \"label\": \"{}\",\n  \"versions\": [\n    {{\n      \"effective_at\": null,\n      \"input_credits_per_million\": 0,\n      \"cached_input_credits_per_million\": 0,\n      \"output_credits_per_million\": 0,\n      \"fast_credit_multiplier\": 1\n    }}\n  ]\n}}",
         escape_double_quoted(model)

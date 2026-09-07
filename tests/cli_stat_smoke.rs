@@ -91,6 +91,143 @@ fn stat_json_schema_and_account_attribution_are_stable() {
 }
 
 #[test]
+fn stat_prices_new_models_and_reports_spark_as_known_unpriced() {
+    let sandbox = Sandbox::new();
+    let sessions_dir = sandbox.home.join("new-model-sessions/2026/05/10");
+    fs::create_dir_all(&sessions_dir).expect("create new model sessions dir");
+    let models = [
+        ("astra", "gpt-6-astra", "2026-05-10T09:00:00.000Z"),
+        (
+            "daybreak-blue",
+            "gpt-daybreak-blue-latest",
+            "2026-05-10T10:00:00.000Z",
+        ),
+        (
+            "daybreak-red",
+            "gpt-daybreak-red-latest",
+            "2026-05-10T11:00:00.000Z",
+        ),
+        ("spark", "gpt-5.3-codex-spark", "2026-05-10T12:00:00.000Z"),
+    ];
+
+    for (session_id, model, timestamp) in models {
+        let session_meta = serde_json::json!({
+            "timestamp": timestamp,
+            "type": "session_meta",
+            "payload": {
+                "id": session_id,
+                "model": model,
+                "cwd": "/workspace/new-models"
+            }
+        });
+        let turn_context = serde_json::json!({
+            "timestamp": timestamp,
+            "type": "turn_context",
+            "payload": { "model": model }
+        });
+        let token_count = serde_json::json!({
+            "timestamp": timestamp,
+            "type": "event_msg",
+            "payload": {
+                "type": "token_count",
+                "info": {
+                    "last_token_usage": {
+                        "input_tokens": 1_000_000,
+                        "cached_input_tokens": 0,
+                        "output_tokens": 0,
+                        "reasoning_output_tokens": 0,
+                        "total_tokens": 1_000_000
+                    },
+                    "total_token_usage": {
+                        "input_tokens": 1_000_000,
+                        "cached_input_tokens": 0,
+                        "output_tokens": 0,
+                        "reasoning_output_tokens": 0,
+                        "total_tokens": 1_000_000
+                    }
+                }
+            }
+        });
+        fs::write(
+            sessions_dir.join(format!("rollout-{session_id}.jsonl")),
+            [session_meta, turn_context, token_count]
+                .into_iter()
+                .map(|value| value.to_string())
+                .collect::<Vec<_>>()
+                .join("\n"),
+        )
+        .expect("write new model session");
+    }
+
+    let root_sessions_dir = sandbox.home.join("new-model-sessions");
+    let result = run_codex_ops(
+        [
+            "stat",
+            "--all",
+            "--group-by",
+            "model",
+            "--json",
+            "--sessions-dir",
+            root_sessions_dir.to_str().unwrap(),
+        ],
+        &sandbox,
+    );
+    assert_success(&result, "stat new models json");
+    let report = parse_json(&result.stdout, "stat new models json");
+    let rows = assert_array(&report["rows"], "new model rows");
+
+    for (model, expected_credits) in [
+        ("gpt-6-astra", 250.0),
+        ("gpt-daybreak-blue-latest", 100.0),
+        ("gpt-daybreak-red-latest", 312.5),
+    ] {
+        let row = rows
+            .iter()
+            .find(|row| row["key"] == model)
+            .unwrap_or_else(|| panic!("missing priced row for {model}: {rows:?}"));
+        assert_json_f64(&row["credits"], expected_credits, model);
+        assert_json_eq(&row["pricedCalls"], 1, &format!("{model} priced calls"));
+        assert_json_eq(&row["unpricedCalls"], 0, &format!("{model} unpriced calls"));
+    }
+
+    let spark = rows
+        .iter()
+        .find(|row| row["key"] == "gpt-5.3-codex-spark")
+        .expect("Spark model row");
+    assert_json_f64(&spark["credits"], 0.0, "Spark credits");
+    assert_json_eq(&spark["pricedCalls"], 0, "Spark priced calls");
+    assert_json_eq(&spark["unpricedCalls"], 1, "Spark unpriced calls");
+
+    assert_json_f64(
+        &report["totals"]["credits"],
+        662.5,
+        "new model total credits",
+    );
+    assert_json_eq(
+        &report["totals"]["pricedCalls"],
+        3,
+        "new model priced calls",
+    );
+    assert_json_eq(
+        &report["totals"]["unpricedCalls"],
+        1,
+        "new model unpriced calls",
+    );
+    let unpriced = assert_array(&report["unpricedModels"], "new model unpriced models");
+    assert_eq!(unpriced.len(), 1);
+    assert_json_eq(
+        &unpriced[0]["pricingKey"],
+        "gpt-5.3-codex-spark",
+        "Spark pricing key",
+    );
+    assert_json_eq(
+        &unpriced[0]["note"],
+        "research preview; uses a separate usage limit and has no token credit rate",
+        "Spark unpriced note",
+    );
+}
+
+#[test]
 fn stat_time_ranges_use_fixed_now_and_local_date_bounds() {
     let sandbox = Sandbox::new();
 

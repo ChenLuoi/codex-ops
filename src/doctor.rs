@@ -485,7 +485,7 @@ fn check_recent_rate_limits(sessions_dir: &Path, now: DateTime<Utc>) -> DoctorCh
 
 fn check_pricing() -> DoctorCheck {
     let priced = list_model_pricing();
-    let unpriced_count = list_known_unpriced_models().len();
+    let unpriced = list_known_unpriced_models();
     let mut details = vec![
         format!("Source: {}", CODEX_RATE_CARD_SOURCE.name),
         format!("Checked: {}", CODEX_RATE_CARD_SOURCE.checked_at),
@@ -499,13 +499,20 @@ fn check_pricing() -> DoctorCheck {
             model.note.as_deref().unwrap_or_default()
         ));
     }
+    for model in unpriced.iter().filter(|model| model.note.is_some()) {
+        details.push(format!(
+            "{}: {}",
+            model.label,
+            model.note.as_deref().unwrap_or_default()
+        ));
+    }
 
     ok(
         "Pricing",
         format!(
             "{} priced model(s), {} known unpriced model(s)",
             priced.len(),
-            unpriced_count
+            unpriced.len()
         ),
         details,
     )
@@ -645,7 +652,7 @@ mod tests {
         assert_eq!(check.status, "ok");
         assert_eq!(
             check.message,
-            "11 priced model(s), 0 known unpriced model(s)"
+            "13 priced model(s), 1 known unpriced model(s)"
         );
         assert!(check
             .details

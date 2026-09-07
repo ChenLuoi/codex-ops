@@ -459,14 +459,18 @@ Limit options:
 | `-v, --verbose` | Include scan diagnostics; with JSON, include source file/line evidence. |
 
 Pricing data is statically embedded from `data/codex-rate-card.json`. The
-current snapshot source is the [OpenAI Help Center Codex rate
-card](https://help.openai.com/en/articles/20001106-codex-rate-card), checked
-2026-08-04. The table below lists the latest effective version of every priced
-model in the embedded rate card.
+current snapshot source is the [OpenAI Codex pricing
+documentation](https://learn.chatgpt.com/docs/pricing), checked 2026-09-07. The
+table below lists the latest effective version of every model in the embedded
+rate card. An em dash means that OpenAI documents the model but does not publish
+a token credit rate.
 
 | Model | Input / 1M | Cached input / 1M | Output / 1M | Fast multiplier | Note |
 | --- | ---: | ---: | ---: | ---: | --- |
-| GPT-5.6 Sol | 125 credits | 12.50 credits | 750 credits | 2.5x |  |
+| GPT-6 Astra | 250 credits | 25 credits | 1,250 credits | 2.5x |  |
+| GPT-5.6 Sol | 100 credits | 10 credits | 500 credits | 2.5x | promotional pricing available at least through 2026-11-21 |
+| Daybreak Blue | 100 credits | 10 credits | 500 credits | 2.5x | uses GPT-5.6 Sol credit rates |
+| Daybreak Red | 312.5 credits | 31.25 credits | 1,875 credits | 1.0x | requires separate approval and provisioning; no additional Fast multiplier is documented |
 | GPT-5.6 Terra | 50 credits | 5 credits | 300 credits | 2.5x |  |
 | GPT-5.6 Luna | 5 credits | 0.5 credits | 30 credits | 2.5x |  |
 | GPT-5.5 | 125 credits | 12.50 credits | 750 credits | 2.5x |  |
@@ -474,7 +478,7 @@ model in the embedded rate card.
 | GPT-5.4-mini | 18.75 credits | 1.875 credits | 113 credits | 1.0x |  |
 | GPT-5.3-Codex | 43.75 credits | 4.375 credits | 350 credits | 1.0x |  |
 | GPT-5.2 | 43.75 credits | 4.375 credits | 350 credits | 1.0x |  |
-| GPT-5.3-Codex-Spark | 0 credits | 0 credits | 0 credits | 1.0x | research preview; charged at 0 credits |
+| GPT-5.3-Codex-Spark | — | — | — | — | research preview; uses a separate usage limit |
 | GPT-Image-2 (image) | 200 credits | 50 credits | 750 credits | 1.0x |  |
 | GPT-Image-2 (text) | 125 credits | 31.25 credits | 250 credits | 1.0x |  |
 
@@ -491,6 +495,7 @@ shown as input / cached input / output credits per 1M tokens.
 | --- | --- | --- | --- | --- |
 | GPT-5.6 Terra | 62.50 / 6.250 / 375 credits (2.5x fast) | 50 / 5 / 300 credits (2.5x fast) | 2026-07-30T17:17:05.167Z | [GPT-5.6 Terra and Luna price reduction](https://x.com/OpenAI/status/2082878156483219672); official announcement time used as the auditable proxy cutoff |
 | GPT-5.6 Luna | 25 / 2.50 / 150 credits (2.5x fast) | 5 / 0.5 / 30 credits (2.5x fast) | 2026-07-30T17:17:05.167Z | [GPT-5.6 Terra and Luna price reduction](https://x.com/OpenAI/status/2082878156483219672); official announcement time used as the auditable proxy cutoff |
+| GPT-5.6 Sol | 125 / 12.50 / 750 credits (2.5x fast) | 100 / 10 / 500 credits (2.5x fast) | 2026-09-04T00:00:00Z | [GPT-5.6 Sol promotional pricing](https://learn.chatgpt.com/docs/pricing); documented GPT-6 Astra launch date at UTC midnight used as the auditable proxy cutoff |
 
 ## Development
 
