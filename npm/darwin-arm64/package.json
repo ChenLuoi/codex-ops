@@ -1,6 +1,6 @@
 {
   "name": "@codexops/darwin-arm64",
-  "version": "0.3.4",
+  "version": "0.4.0",
   "description": "Prebuilt codex-ops Rust binary for macOS arm64.",
   "homepage": "https://github.com/ChenLuoi/codex-ops#readme",
   "bugs": {
