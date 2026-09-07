@@ -27,7 +27,7 @@ fn doctor_json_reports_core_checks_and_pricing_source() {
     assert_no_secrets(&doctor, "doctor json");
     let doctor_json = parse_json(&doctor.stdout, "doctor json");
     assert_json_eq(&doctor_json["summary"]["errors"], 0, "doctor errors");
-    assert_json_eq(&doctor_json["summary"]["warnings"], 0, "doctor warnings");
+    assert_json_eq(&doctor_json["summary"]["warnings"], 1, "doctor warnings");
     assert!(
         !doctor_json
             .as_object()
@@ -36,9 +36,26 @@ fn doctor_json_reports_core_checks_and_pricing_source() {
         "doctor json should not include cycleFile: {doctor_json}"
     );
     assert_check_status(&doctor_json, "Auth file", "ok");
-    assert_check_status(&doctor_json, "Recent usage", "ok");
+    assert_check_status(&doctor_json, "Recent usage", "warn");
     assert_check_status(&doctor_json, "Recent rate limits", "ok");
     assert_check_status(&doctor_json, "Pricing", "ok");
+
+    let recent_usage = doctor_json["checks"]
+        .as_array()
+        .expect("doctor checks array")
+        .iter()
+        .find(|check| check["name"] == "Recent usage")
+        .expect("recent usage check");
+    assert!(
+        recent_usage["details"]
+            .as_array()
+            .expect("recent usage details")
+            .iter()
+            .any(|detail| detail
+                .as_str()
+                .is_some_and(|detail| detail.contains("uses a separate usage limit"))),
+        "Spark unpriced note missing: {recent_usage}"
+    );
 
     let rate_limits = doctor_json["checks"]
         .as_array()
@@ -84,11 +101,11 @@ fn doctor_json_reports_core_checks_and_pricing_source() {
     assert!(
         details
             .iter()
-            .any(|detail| detail == "Source: OpenAI Help Center Codex rate card"),
+            .any(|detail| detail == "Source: OpenAI Codex pricing"),
         "pricing source detail missing: {details:?}"
     );
     assert!(
-        details.iter().any(|detail| detail == "Checked: 2026-08-04"),
+        details.iter().any(|detail| detail == "Checked: 2026-09-07"),
         "pricing checked_at detail missing: {details:?}"
     );
     assert!(
@@ -111,6 +128,11 @@ fn doctor_json_reports_core_checks_and_pricing_source() {
         &sandbox,
     );
     assert_success(&doctor_table, "doctor table");
+    assert_contains(
+        &doctor_table.stdout,
+        "uses a separate usage limit",
+        "doctor table",
+    );
     assert_not_contains(&doctor_table.stdout, "Cycle file", "doctor table");
     assert_not_contains(&doctor_table.stdout, "Cycle store", "doctor table");
 }

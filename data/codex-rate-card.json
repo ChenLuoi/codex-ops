@@ -1,8 +1,8 @@
 {
   "source": {
-    "name": "OpenAI Help Center Codex rate card",
-    "url": "https://help.openai.com/en/articles/20001106-codex-rate-card",
-    "checked_at": "2026-08-04",
+    "name": "OpenAI Codex pricing",
+    "url": "https://learn.chatgpt.com/docs/pricing",
+    "checked_at": "2026-09-07",
     "credit_to_usd": "25 credits = $1"
   },
   "events": [
@@ -12,9 +12,29 @@
       "announced_at": "2026-07-30T17:17:05.167Z",
       "url": "https://x.com/OpenAI/status/2082878156483219672",
       "note": "The effective_at cutoff uses the official public announcement time as an auditable proxy because OpenAI did not publish the backend billing cutover time."
+    },
+    {
+      "key": "2026-09-04-gpt-5.6-sol-promotional-pricing",
+      "title": "GPT-5.6 Sol promotional pricing",
+      "announced_at": "2026-09-04T00:00:00Z",
+      "url": "https://learn.chatgpt.com/docs/pricing",
+      "note": "The effective_at cutoff uses the documented GPT-6 Astra launch date at UTC midnight as an auditable proxy because OpenAI did not publish the exact backend billing cutover time."
     }
   ],
   "models": [
+    {
+      "key": "gpt-6-astra",
+      "label": "GPT-6 Astra",
+      "versions": [
+        {
+          "effective_at": null,
+          "input_credits_per_million": 250.0,
+          "cached_input_credits_per_million": 25.0,
+          "output_credits_per_million": 1250.0,
+          "fast_credit_multiplier": 2.5
+        }
+      ]
+    },
     {
       "key": "gpt-5.6-sol",
       "label": "GPT-5.6 Sol",
@@ -25,8 +45,44 @@
           "cached_input_credits_per_million": 12.5,
           "output_credits_per_million": 750.0,
           "fast_credit_multiplier": 2.5
+        },
+        {
+          "effective_at": "2026-09-04T00:00:00Z",
+          "event": "2026-09-04-gpt-5.6-sol-promotional-pricing",
+          "input_credits_per_million": 100.0,
+          "cached_input_credits_per_million": 10.0,
+          "output_credits_per_million": 500.0,
+          "fast_credit_multiplier": 2.5
         }
       ]
+    },
+    {
+      "key": "gpt-daybreak-blue-latest",
+      "label": "Daybreak Blue",
+      "versions": [
+        {
+          "effective_at": null,
+          "input_credits_per_million": 100.0,
+          "cached_input_credits_per_million": 10.0,
+          "output_credits_per_million": 500.0,
+          "fast_credit_multiplier": 2.5
+        }
+      ],
+      "note": "Uses GPT-5.6 Sol credit rates."
+    },
+    {
+      "key": "gpt-daybreak-red-latest",
+      "label": "Daybreak Red",
+      "versions": [
+        {
+          "effective_at": null,
+          "input_credits_per_million": 312.5,
+          "cached_input_credits_per_million": 31.25,
+          "output_credits_per_million": 1875.0,
+          "fast_credit_multiplier": 1.0
+        }
+      ],
+      "note": "Requires separate approval and provisioning; no additional Fast credit multiplier is documented."
     },
     {
       "key": "gpt-5.6-terra",
@@ -136,20 +192,6 @@
       ]
     },
     {
-      "key": "gpt-5.3-codex-spark",
-      "label": "GPT-5.3-Codex-Spark",
-      "versions": [
-        {
-          "effective_at": null,
-          "input_credits_per_million": 0.0,
-          "cached_input_credits_per_million": 0.0,
-          "output_credits_per_million": 0.0,
-          "fast_credit_multiplier": 1.0
-        }
-      ],
-      "note": "research preview; charged at 0 credits"
-    },
-    {
       "key": "gpt-image-2 (image)",
       "label": "GPT-Image-2 (image)",
       "versions": [
@@ -176,5 +218,11 @@
       ]
     }
   ],
-  "knownUnpriced": []
+  "knownUnpriced": [
+    {
+      "key": "gpt-5.3-codex-spark",
+      "label": "GPT-5.3-Codex-Spark",
+      "note": "research preview; uses a separate usage limit and has no token credit rate"
+    }
+  ]
 }
