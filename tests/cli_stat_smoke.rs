@@ -91,7 +91,7 @@ fn stat_json_schema_and_account_attribution_are_stable() {
 }
 
 #[test]
-fn stat_prices_new_models_and_reports_spark_as_known_unpriced() {
+fn stat_prices_new_models_and_reports_known_unpriced_keys() {
     let sandbox = Sandbox::new();
     let sessions_dir = sandbox.home.join("new-model-sessions/2026/05/10");
     fs::create_dir_all(&sessions_dir).expect("create new model sessions dir");
@@ -108,6 +108,18 @@ fn stat_prices_new_models_and_reports_spark_as_known_unpriced() {
             "2026-05-10T11:00:00.000Z",
         ),
         ("spark", "gpt-5.3-codex-spark", "2026-05-10T12:00:00.000Z"),
+        ("sol", "gpt-6-sol", "2026-05-10T13:00:00.000Z"),
+        ("luna", "gpt-6-luna", "2026-05-10T14:00:00.000Z"),
+        (
+            "rosalind",
+            "gpt-rosalind-research",
+            "2026-05-10T15:00:00.000Z",
+        ),
+        (
+            "auto-review",
+            "codex-auto-review",
+            "2026-05-10T16:00:00.000Z",
+        ),
     ];
 
     for (session_id, model, timestamp) in models {
@@ -178,8 +190,11 @@ fn stat_prices_new_models_and_reports_spark_as_known_unpriced() {
 
     for (model, expected_credits) in [
         ("gpt-6-astra", 250.0),
+        ("gpt-6-sol", 50.0),
+        ("gpt-6-luna", 2.5),
         ("gpt-daybreak-blue-latest", 100.0),
         ("gpt-daybreak-red-latest", 312.5),
+        ("gpt-rosalind-research", 125.0),
     ] {
         let row = rows
             .iter()
@@ -198,32 +213,57 @@ fn stat_prices_new_models_and_reports_spark_as_known_unpriced() {
     assert_json_eq(&spark["pricedCalls"], 0, "Spark priced calls");
     assert_json_eq(&spark["unpricedCalls"], 1, "Spark unpriced calls");
 
+    let auto_review = rows
+        .iter()
+        .find(|row| row["key"] == "codex-auto-review")
+        .expect("Auto-review model row");
+    assert_json_f64(&auto_review["credits"], 0.0, "Auto-review credits");
+    assert_json_eq(&auto_review["pricedCalls"], 0, "Auto-review priced calls");
+    assert_json_eq(
+        &auto_review["unpricedCalls"],
+        1,
+        "Auto-review unpriced calls",
+    );
+
     assert_json_f64(
         &report["totals"]["credits"],
-        662.5,
+        840.0,
         "new model total credits",
     );
     assert_json_eq(
         &report["totals"]["pricedCalls"],
-        3,
+        6,
         "new model priced calls",
     );
     assert_json_eq(
         &report["totals"]["unpricedCalls"],
-        1,
+        2,
         "new model unpriced calls",
     );
     let unpriced = assert_array(&report["unpricedModels"], "new model unpriced models");
-    assert_eq!(unpriced.len(), 1);
+    assert_eq!(unpriced.len(), 2);
+    let spark = unpriced
+        .iter()
+        .find(|model| model["pricingKey"] == "gpt-5.3-codex-spark")
+        .expect("Spark unpriced model");
     assert_json_eq(
-        &unpriced[0]["pricingKey"],
+        &spark["pricingKey"],
         "gpt-5.3-codex-spark",
         "Spark pricing key",
     );
     assert_json_eq(
-        &unpriced[0]["note"],
+        &spark["note"],
         "research preview; uses a separate usage limit and has no token credit rate",
         "Spark unpriced note",
+    );
+    let auto_review = unpriced
+        .iter()
+        .find(|model| model["pricingKey"] == "codex-auto-review")
+        .expect("Auto-review unpriced model");
+    assert_json_eq(
+        &auto_review["note"],
+        "No public token credit rate is documented for this reviewer model key.",
+        "Auto-review unpriced note",
     );
 }
 

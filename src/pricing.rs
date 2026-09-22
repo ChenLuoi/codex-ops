@@ -186,6 +186,8 @@ pub fn pricing_key_for_model(model: &str) -> String {
     let normalized = normalize_model_name(model);
     match normalized.as_str() {
         "gpt-6 astra" | "astra" => "gpt-6-astra".to_string(),
+        "gpt-6 sol" => "gpt-6-sol".to_string(),
+        "gpt-6 luna" => "gpt-6-luna".to_string(),
         "gpt-5.6" | "gpt-5.6 sol" => "gpt-5.6-sol".to_string(),
         "daybreak blue" | "daybreak-blue" | "gpt-daybreak-blue" => {
             "gpt-daybreak-blue-latest".to_string()
@@ -669,6 +671,12 @@ mod tests {
         assert_eq!(normalize_model_name("  GPT-5.4   MINI "), "gpt-5.4 mini");
         assert_eq!(pricing_key_for_model("GPT-5.4   MINI"), "gpt-5.4-mini");
         assert_eq!(pricing_key_for_model("GPT-6 Astra"), "gpt-6-astra");
+        assert_eq!(pricing_key_for_model("GPT-6 Sol"), "gpt-6-sol");
+        assert_eq!(pricing_key_for_model("GPT-6 Luna"), "gpt-6-luna");
+        assert_eq!(
+            pricing_key_for_model("codex-auto-review"),
+            "codex-auto-review"
+        );
         assert_eq!(pricing_key_for_model("gpt-5.6"), "gpt-5.6-sol");
         assert_eq!(
             pricing_key_for_model("Daybreak Blue"),
@@ -729,9 +737,11 @@ mod tests {
     }
 
     #[test]
-    fn loads_astra_and_daybreak_pricing_from_rate_card() {
+    fn loads_new_model_pricing_by_session_key() {
         let expected = [
             ("gpt-6-astra", "GPT-6 Astra", 250.0, 25.0, 1250.0, 2.5),
+            ("gpt-6-sol", "GPT-6 Sol", 50.0, 5.0, 250.0, 2.5),
+            ("gpt-6-luna", "GPT-6 Luna", 2.5, 0.25, 12.5, 2.5),
             (
                 "gpt-daybreak-blue-latest",
                 "Daybreak Blue",
@@ -746,6 +756,14 @@ mod tests {
                 312.5,
                 31.25,
                 1875.0,
+                1.0,
+            ),
+            (
+                "gpt-rosalind-research",
+                "GPT-Rosalind-Research",
+                125.0,
+                12.5,
+                625.0,
                 1.0,
             ),
         ];
@@ -848,6 +866,25 @@ mod tests {
     }
 
     #[test]
+    fn auto_review_key_is_known_but_not_assigned_an_unpublished_rate() {
+        let cost = calculate_credit_cost(
+            "codex-auto-review",
+            TokenUsage {
+                input_tokens: 500,
+                cached_input_tokens: 0,
+                output_tokens: 100,
+            },
+        );
+
+        assert!(!cost.priced);
+        assert_eq!(cost.pricing_label, "codex-auto-review");
+        assert_eq!(
+            cost.unpriced_reason.as_deref(),
+            Some("No public token credit rate is documented for this reviewer model key.")
+        );
+    }
+
+    #[test]
     fn pricing_inventory_is_sorted() {
         let keys = list_model_pricing()
             .into_iter()
@@ -865,13 +902,14 @@ mod tests {
             CODEX_RATE_CARD_SOURCE.url,
             "https://learn.chatgpt.com/docs/pricing"
         );
-        assert_eq!(CODEX_RATE_CARD_SOURCE.checked_at, "2026-09-07");
+        assert_eq!(CODEX_RATE_CARD_SOURCE.checked_at, "2026-09-23");
         assert_eq!(CODEX_RATE_CARD_SOURCE.credit_to_usd, "25 credits = $1");
         assert!((CODEX_RATE_CARD_SOURCE.credits_per_usd - 25.0).abs() < f64::EPSILON);
-        assert_eq!(list_model_pricing().len(), 13);
+        assert_eq!(list_model_pricing().len(), 16);
         let unpriced = list_known_unpriced_models();
-        assert_eq!(unpriced.len(), 1);
-        assert_eq!(unpriced[0].key, "gpt-5.3-codex-spark");
+        assert_eq!(unpriced.len(), 2);
+        assert_eq!(unpriced[0].key, "codex-auto-review");
+        assert_eq!(unpriced[1].key, "gpt-5.3-codex-spark");
     }
 
     #[test]

@@ -652,12 +652,16 @@ mod tests {
         assert_eq!(check.status, "ok");
         assert_eq!(
             check.message,
-            "13 priced model(s), 1 known unpriced model(s)"
+            "16 priced model(s), 2 known unpriced model(s)"
         );
         assert!(check
             .details
             .iter()
             .any(|detail| detail.contains("GPT-5.3-Codex-Spark")));
+        assert!(check
+            .details
+            .iter()
+            .any(|detail| detail.contains("codex-auto-review")));
     }
 
     #[test]
