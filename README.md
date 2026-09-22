@@ -460,27 +460,31 @@ Limit options:
 
 Pricing data is statically embedded from `data/codex-rate-card.json`. The
 current snapshot source is the [OpenAI Codex pricing
-documentation](https://learn.chatgpt.com/docs/pricing), checked 2026-09-07. The
+documentation](https://learn.chatgpt.com/docs/pricing#token-rates), checked 2026-09-23. The
 table below lists the latest effective version of every model in the embedded
-rate card. An em dash means that OpenAI documents the model but does not publish
-a token credit rate.
+rate card. An em dash means no public token credit rate is available for that
+key. Model keys are the values used to match session records.
 
-| Model | Input / 1M | Cached input / 1M | Output / 1M | Fast multiplier | Note |
-| --- | ---: | ---: | ---: | ---: | --- |
-| GPT-6 Astra | 250 credits | 25 credits | 1,250 credits | 2.5x |  |
-| GPT-5.6 Sol | 100 credits | 10 credits | 500 credits | 2.5x | promotional pricing available at least through 2026-11-21 |
-| Daybreak Blue | 100 credits | 10 credits | 500 credits | 2.5x | uses GPT-5.6 Sol credit rates |
-| Daybreak Red | 312.5 credits | 31.25 credits | 1,875 credits | 1.0x | requires separate approval and provisioning; no additional Fast multiplier is documented |
-| GPT-5.6 Terra | 50 credits | 5 credits | 300 credits | 2.5x |  |
-| GPT-5.6 Luna | 5 credits | 0.5 credits | 30 credits | 2.5x |  |
-| GPT-5.5 | 125 credits | 12.50 credits | 750 credits | 2.5x |  |
-| GPT-5.4 | 62.50 credits | 6.250 credits | 375 credits | 2.0x |  |
-| GPT-5.4-mini | 18.75 credits | 1.875 credits | 113 credits | 1.0x |  |
-| GPT-5.3-Codex | 43.75 credits | 4.375 credits | 350 credits | 1.0x |  |
-| GPT-5.2 | 43.75 credits | 4.375 credits | 350 credits | 1.0x |  |
-| GPT-5.3-Codex-Spark | — | — | — | — | research preview; uses a separate usage limit |
-| GPT-Image-2 (image) | 200 credits | 50 credits | 750 credits | 1.0x |  |
-| GPT-Image-2 (text) | 125 credits | 31.25 credits | 250 credits | 1.0x |  |
+| Model | Key | Input / 1M | Cached input / 1M | Output / 1M | Fast multiplier | Note |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| GPT-6 Astra | `gpt-6-astra` | 250 credits | 25 credits | 1,250 credits | 2.5x |  |
+| GPT-6 Sol | `gpt-6-sol` | 50 credits | 5 credits | 250 credits | 2.5x |  |
+| GPT-6 Luna | `gpt-6-luna` | 2.5 credits | 0.25 credits | 12.5 credits | 2.5x |  |
+| GPT-5.6 Sol | `gpt-5.6-sol` | 100 credits | 10 credits | 500 credits | 2.5x | promotional pricing available at least through 2026-11-21 |
+| Daybreak Blue | `gpt-daybreak-blue-latest` | 100 credits | 10 credits | 500 credits | 2.5x | uses GPT-5.6 Sol credit rates |
+| Daybreak Red | `gpt-daybreak-red-latest` | 312.5 credits | 31.25 credits | 1,875 credits | 1.0x | requires separate approval and provisioning; no additional Fast multiplier is documented |
+| GPT-5.6 Terra | `gpt-5.6-terra` | 50 credits | 5 credits | 300 credits | 2.5x |  |
+| GPT-5.6 Luna | `gpt-5.6-luna` | 5 credits | 0.5 credits | 30 credits | 2.5x |  |
+| GPT-Rosalind-Research | `gpt-rosalind-research` | 125 credits | 12.5 credits | 625 credits | 1.0x | no Fast credit multiplier is documented |
+| GPT-5.5 | `gpt-5.5` | 125 credits | 12.50 credits | 750 credits | 2.5x |  |
+| GPT-5.4 | `gpt-5.4` | 62.50 credits | 6.250 credits | 375 credits | 2.0x |  |
+| GPT-5.4-mini | `gpt-5.4-mini` | 18.75 credits | 1.875 credits | 113 credits | 1.0x |  |
+| GPT-5.3-Codex | `gpt-5.3-codex` | 43.75 credits | 4.375 credits | 350 credits | 1.0x |  |
+| GPT-5.2 | `gpt-5.2` | 43.75 credits | 4.375 credits | 350 credits | 1.0x |  |
+| GPT-5.3-Codex-Spark | `gpt-5.3-codex-spark` | — | — | — | — | research preview; uses a separate usage limit |
+| GPT-Image-2 (image) | `gpt-image-2 (image)` | 200 credits | 50 credits | 750 credits | 1.0x |  |
+| GPT-Image-2 (text) | `gpt-image-2 (text)` | 125 credits | 31.25 credits | 250 credits | 1.0x |  |
+| codex-auto-review | `codex-auto-review` | — | — | — | — | reviewer model key; no public token credit rate is documented |
 
 The Fast multipliers follow the [Codex Fast mode
 documentation](https://learn.chatgpt.com/docs/agent-configuration/speed#fast-mode).
