@@ -186,6 +186,7 @@ pub fn pricing_key_for_model(model: &str) -> String {
     let normalized = normalize_model_name(model);
     match normalized.as_str() {
         "gpt-6 astra" | "astra" => "gpt-6-astra".to_string(),
+        "gpt-6.1 sol" => "gpt-6.1-sol".to_string(),
         "gpt-6 sol" => "gpt-6-sol".to_string(),
         "gpt-6 luna" => "gpt-6-luna".to_string(),
         "gpt-5.6" | "gpt-5.6 sol" => "gpt-5.6-sol".to_string(),
@@ -671,6 +672,7 @@ mod tests {
         assert_eq!(normalize_model_name("  GPT-5.4   MINI "), "gpt-5.4 mini");
         assert_eq!(pricing_key_for_model("GPT-5.4   MINI"), "gpt-5.4-mini");
         assert_eq!(pricing_key_for_model("GPT-6 Astra"), "gpt-6-astra");
+        assert_eq!(pricing_key_for_model("  GPT-6.1   SOL "), "gpt-6.1-sol");
         assert_eq!(pricing_key_for_model("GPT-6 Sol"), "gpt-6-sol");
         assert_eq!(pricing_key_for_model("GPT-6 Luna"), "gpt-6-luna");
         assert_eq!(
@@ -740,6 +742,7 @@ mod tests {
     fn loads_new_model_pricing_by_session_key() {
         let expected = [
             ("gpt-6-astra", "GPT-6 Astra", 250.0, 25.0, 1250.0, 2.5),
+            ("gpt-6.1-sol", "GPT-6.1 Sol", 50.0, 2.5, 250.0, 2.5),
             ("gpt-6-sol", "GPT-6 Sol", 50.0, 5.0, 250.0, 2.5),
             ("gpt-6-luna", "GPT-6 Luna", 2.5, 0.25, 12.5, 2.5),
             (
@@ -776,6 +779,42 @@ mod tests {
             assert_eq!(pricing.output_credits_per_million, output);
             assert_eq!(pricing.fast_credit_multiplier, fast_multiplier);
         }
+    }
+
+    #[test]
+    fn calculates_gpt_6_1_sol_cost_with_cached_input_and_fast_at_timestamp() {
+        let usage = TokenUsage {
+            input_tokens: 2_000_000,
+            cached_input_tokens: 1_000_000,
+            output_tokens: 1_000_000,
+        };
+        let timestamp = DateTime::parse_from_rfc3339("2026-09-30T00:00:00Z")
+            .expect("valid timestamp")
+            .with_timezone(&Utc);
+
+        for model in ["gpt-6.1-sol", "  GPT-6.1   SOL "] {
+            let normal = calculate_credit_cost_at(model, usage, timestamp);
+            assert!(normal.priced);
+            assert_eq!(normal.pricing_label, "GPT-6.1 Sol");
+            assert_eq!(normal.billable_input_tokens, 1_000_000);
+            assert_eq!(normal.cached_input_tokens, 1_000_000);
+            assert_eq!(normal.output_tokens, 1_000_000);
+            assert_eq!(normal.credit_multiplier, 1.0);
+            assert_eq!(normal.credits, 302.5);
+
+            let fast = calculate_credit_cost_with_context_at(
+                model,
+                usage,
+                PricingContext::fast(),
+                timestamp,
+            );
+            assert!(fast.priced);
+            assert_eq!(fast.credit_multiplier, 2.5);
+            assert_eq!(fast.credits, 756.25);
+        }
+
+        let previous_sol = calculate_credit_cost_at("gpt-6-sol", usage, timestamp);
+        assert_eq!(previous_sol.credits, 305.0);
     }
 
     #[test]
@@ -902,10 +941,10 @@ mod tests {
             CODEX_RATE_CARD_SOURCE.url,
             "https://learn.chatgpt.com/docs/pricing"
         );
-        assert_eq!(CODEX_RATE_CARD_SOURCE.checked_at, "2026-09-23");
+        assert_eq!(CODEX_RATE_CARD_SOURCE.checked_at, "2026-09-30");
         assert_eq!(CODEX_RATE_CARD_SOURCE.credit_to_usd, "25 credits = $1");
         assert!((CODEX_RATE_CARD_SOURCE.credits_per_usd - 25.0).abs() < f64::EPSILON);
-        assert_eq!(list_model_pricing().len(), 16);
+        assert_eq!(list_model_pricing().len(), 17);
         let unpriced = list_known_unpriced_models();
         assert_eq!(unpriced.len(), 2);
         assert_eq!(unpriced[0].key, "codex-auto-review");

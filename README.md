@@ -460,7 +460,7 @@ Limit options:
 
 Pricing data is statically embedded from `data/codex-rate-card.json`. The
 current snapshot source is the [OpenAI Codex pricing
-documentation](https://learn.chatgpt.com/docs/pricing#token-rates), checked 2026-09-23. The
+documentation](https://learn.chatgpt.com/docs/pricing#token-rates), checked 2026-09-30. The
 table below lists the latest effective version of every model in the embedded
 rate card. An em dash means no public token credit rate is available for that
 key. Model keys are the values used to match session records.
@@ -468,6 +468,7 @@ key. Model keys are the values used to match session records.
 | Model | Key | Input / 1M | Cached input / 1M | Output / 1M | Fast multiplier | Note |
 | --- | --- | ---: | ---: | ---: | ---: | --- |
 | GPT-6 Astra | `gpt-6-astra` | 250 credits | 25 credits | 1,250 credits | 2.5x |  |
+| GPT-6.1 Sol | `gpt-6.1-sol` | 50 credits | 2.5 credits | 250 credits | 2.5x |  |
 | GPT-6 Sol | `gpt-6-sol` | 50 credits | 5 credits | 250 credits | 2.5x |  |
 | GPT-6 Luna | `gpt-6-luna` | 2.5 credits | 0.25 credits | 12.5 credits | 2.5x |  |
 | GPT-5.6 Sol | `gpt-5.6-sol` | 100 credits | 10 credits | 500 credits | 2.5x | promotional pricing available at least through 2026-11-21 |
