@@ -109,6 +109,7 @@ fn stat_prices_new_models_and_reports_known_unpriced_keys() {
         ),
         ("spark", "gpt-5.3-codex-spark", "2026-05-10T12:00:00.000Z"),
         ("sol", "gpt-6-sol", "2026-05-10T13:00:00.000Z"),
+        ("sol-6.1", "gpt-6.1-sol", "2026-05-10T13:30:00.000Z"),
         ("luna", "gpt-6-luna", "2026-05-10T14:00:00.000Z"),
         (
             "rosalind",
@@ -191,6 +192,7 @@ fn stat_prices_new_models_and_reports_known_unpriced_keys() {
     for (model, expected_credits) in [
         ("gpt-6-astra", 250.0),
         ("gpt-6-sol", 50.0),
+        ("gpt-6.1-sol", 50.0),
         ("gpt-6-luna", 2.5),
         ("gpt-daybreak-blue-latest", 100.0),
         ("gpt-daybreak-red-latest", 312.5),
@@ -227,12 +229,12 @@ fn stat_prices_new_models_and_reports_known_unpriced_keys() {
 
     assert_json_f64(
         &report["totals"]["credits"],
-        840.0,
+        890.0,
         "new model total credits",
     );
     assert_json_eq(
         &report["totals"]["pricedCalls"],
-        6,
+        7,
         "new model priced calls",
     );
     assert_json_eq(

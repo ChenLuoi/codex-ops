@@ -2,7 +2,7 @@
   "source": {
     "name": "OpenAI Codex pricing",
     "url": "https://learn.chatgpt.com/docs/pricing",
-    "checked_at": "2026-09-23",
+    "checked_at": "2026-09-30",
     "credit_to_usd": "25 credits = $1"
   },
   "events": [
@@ -31,6 +31,19 @@
           "input_credits_per_million": 250.0,
           "cached_input_credits_per_million": 25.0,
           "output_credits_per_million": 1250.0,
+          "fast_credit_multiplier": 2.5
+        }
+      ]
+    },
+    {
+      "key": "gpt-6.1-sol",
+      "label": "GPT-6.1 Sol",
+      "versions": [
+        {
+          "effective_at": null,
+          "input_credits_per_million": 50.0,
+          "cached_input_credits_per_million": 2.5,
+          "output_credits_per_million": 250.0,
           "fast_credit_multiplier": 2.5
         }
       ]
